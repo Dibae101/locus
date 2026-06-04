@@ -35,3 +35,11 @@ Detailed design lives in the spec documents:
 ## Status
 
 Early design. Requirements are defined for both layers; implementation has not started.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+[MIT](LICENSE) © 2026 Dibae101
