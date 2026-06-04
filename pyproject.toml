@@ -24,7 +24,9 @@ dependencies = [
 [project.optional-dependencies]
 # Heavier / scenario-specific extras are opt-in to keep the core lightweight.
 docling = ["docling>=2.0"]
-pdf = ["pdfplumber>=0.11"]
+pdf = [
+    "pdfplumber>=0.11",
+]
 ocr = ["rapidocr-onnxruntime>=1.3"]
 html = ["trafilatura>=1.8", "selectolax>=0.3"]
 dedup = ["rapidfuzz>=3.0"]
