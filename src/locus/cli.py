@@ -159,5 +159,21 @@ def run(
         typer.echo(f"Exported to {export}.")
 
 
+@app.command()
+def inspect(image: str = typer.Argument(..., help="Image reference name[:version].")) -> None:
+    """Show an image's contract: types, engine modes, privacy, conformance."""
+    store = _default_store()
+    name = image.split(":", 1)[0]
+    versions = sorted({s.version for s in store.search() if s.name == name})
+    m = store.inspect(image)
+    typer.echo(f"{m.name}:{m.version}")
+    typer.echo(f"  versions:    {', '.join(versions) or m.version}")
+    typer.echo(f"  emits:       {m.emits.tag()}")
+    typer.echo(f"  accepts:     {', '.join(a.tag() for a in m.accepts) or '(source)'}")
+    typer.echo(f"  engine modes:{', '.join(m.engine_modes)}")
+    typer.echo(f"  privacy:     {m.privacy_class.value}")
+    typer.echo(f"  conformant:  {m.provenance_conformant}")
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

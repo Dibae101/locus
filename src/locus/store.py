@@ -21,7 +21,7 @@ from typing import Protocol
 from packaging.version import InvalidVersion, Version
 
 from locus.errors import ImageNotFoundError
-from locus.manifest import PrivacyClass
+from locus.manifest import ImageManifest, PrivacyClass
 from locus.packaging import pack_image, read_manifest, unpack_image, write_image_dir
 
 
@@ -156,6 +156,18 @@ class LocalImageStore:
                     )
                 )
         return out
+
+    def inspect(self, ref: str, *, include_private: bool = True) -> ImageManifest:
+        """Return the full manifest for an image, honoring visibility (Req 11.2, 11.3)."""
+        name, requested = split_ref(ref)
+        version = self.resolve_version(name, requested)
+        ver_dir = self._root / name / version
+        if not (ver_dir / "manifest.json").exists():
+            raise ImageNotFoundError(f"{name}:{version}")
+        manifest = read_manifest(ver_dir)
+        if self._is_private(ver_dir, manifest.ref) and not include_private:
+            raise ImageNotFoundError(f"{name}:{version}")
+        return manifest
 
 
 # Re-export packaging helpers commonly used alongside the store.
