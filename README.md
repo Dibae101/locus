@@ -2,7 +2,33 @@
 
 Turn any unstructured corpus into validated, **source-grounded** tabular data — ready to feed an LLM.
 
+[![PyPI](https://img.shields.io/pypi/v/locus-etl.svg)](https://pypi.org/project/locus-etl/)
+[![Python](https://img.shields.io/pypi/pyversions/locus-etl.svg)](https://pypi.org/project/locus-etl/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 Locus packages data operations as reusable, versioned **images**. You pull an image, point it at your own data, run it locally, and get a clean table where **every cell carries its source location and a faithfulness score**. Images compose into pipelines, and you can publish your own to Locus Hub (public or private).
+
+## Install
+
+```bash
+pip install locus-etl          # the CLI command is `locus`
+```
+
+Optional extras: `pip install "locus-etl[pdf,serve,llm,oci]"` (PDF parsing, Hub/result UI, LLM engine, OCI registry).
+
+## Quickstart
+
+```bash
+locus catalog list                  # see the official image catalog
+printf 'name,amount\nAcme,100\nGlobex,200\n' > data.csv
+cat > locusfile.yaml <<EOF
+image: doc-to-tables
+source: { type: files, path: ./data.csv }
+EOF
+locus run locusfile.yaml --export out.csv   # grounded table + _lineage column
+locus run locusfile.yaml --serve            # preview UI with per-cell provenance
+locus hub                                    # browse the catalog in a local web UI
+```
 
 ## Architecture (layered)
 
