@@ -37,10 +37,12 @@ Detailed design lives in the spec documents:
 **Layer 1 engine: feature-complete.** **Layer 2 runtime: feature-complete (all 12 build stages done).** Raw corpus → validated, source-grounded table with cell-level provenance; a deterministic default engine and opt-in guardrailed LLM engine; cleaning/dedup; human-in-the-loop review; file/HTTP/REST/SQL connectors with CSV/PDF/HTML/records parsers and DataFrame/Parquet/SQL emitters. The `locus` CLI runs single images and multi-stage pipelines (typed DAG with static type-check + cross-stage provenance), builds/publishes/pulls images via a local registry, and serves a local result UI with the provenance viewer. 208 tests, CI on Python 3.11/3.12 (ruff + mypy strict + pytest).
 
 ```bash
-pip install locus            # CLI + engine (extras: [pdf] [llm] [serve] [dedup] ...)
+pip install locus-etl        # CLI command is `locus`; extras: [pdf] [llm] [serve] [oci] ...
 locus init                   # gitignore .env
+locus catalog list           # see the official image catalog
 locus run locusfile.yaml     # run a pipeline, get a grounded table
 locus run locusfile.yaml --serve --port 8080   # preview UI with provenance
+locus hub                    # browse the image catalog in a local web UI
 locus build / push / pull / search / inspect   # image lifecycle
 ```
 

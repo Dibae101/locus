@@ -18,3 +18,7 @@ htmlcov/
 
 # Local scratch / demo space (not committed)
 scratch/
+
+# Build artifacts
+dist/
+build/
