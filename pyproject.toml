@@ -63,6 +63,10 @@ strict = true
 files = ["src/locus_engine"]
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+module = ["litellm", "keyring", "instructor"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

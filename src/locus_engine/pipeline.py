@@ -17,9 +17,11 @@ from locus_engine.config import PipelineConfig
 from locus_engine.emit.dataframe import DataFrameEmitter
 from locus_engine.errors import LocusError, ParserUnavailableError, SourceError
 from locus_engine.extract.deterministic import DeterministicEngine
+from locus_engine.extract.dual import Extractor
 from locus_engine.ir import IntermediateRepresentation
 from locus_engine.lineage import InMemoryLineageStore
-from locus_engine.observability import ObservabilityBus
+from locus_engine.llm.credentials import CredentialResolver
+from locus_engine.observability import ObservabilityBus, ObservabilityEvent
 from locus_engine.parsers.router import ParserRouter
 from locus_engine.plugins import ExtractContext, ResolvedSchema, SourceRef
 from locus_engine.registry import PluginRegistry
@@ -47,13 +49,15 @@ class Pipeline:
         *,
         observability: ObservabilityBus | None = None,
         schema: ResolvedSchema | None = None,
+        credential_resolver: CredentialResolver | None = None,
+        llm_engine: object | None = None,
     ) -> None:
         self._config = config
         self._registry = registry
         self._obs = observability or ObservabilityBus()
         self._schema = schema or ResolvedSchema(mode=config.schema_mode)
         self._router = ParserRouter(registry, overrides=config.parser_overrides)
-        self._engine = DeterministicEngine()
+        self._extractor = Extractor(DeterministicEngine(), llm=llm_engine)  # type: ignore[arg-type]
         self._validator = GroundingValidator()
         self._cleaner = Cleaner()
         self._dedup = (
@@ -61,12 +65,52 @@ class Pipeline:
             if config.dedup.enabled and config.dedup.keys
             else None
         )
+        self._creds = credential_resolver
+        self._provider = config.llm.provider if config.llm else None
+        self._credential_available = self._detect_credential()
+        self._consent_shown = False
         self._lineage = InMemoryLineageStore()
+
+    def _detect_credential(self) -> bool:
+        """Local presence check only — no network (Req 13.4)."""
+        if self._creds is None or self._provider is None:
+            return False
+        return self._creds.is_available(self._provider)
+
+    @staticmethod
+    def _consent_event(provider: str) -> ObservabilityEvent:
+        """Consent notice raised before any data leaves (Req 13.6)."""
+        return ObservabilityEvent(
+            phase="consent",
+            outcome="llm_enabled",
+            detail={
+                "message": (
+                    f"LLM engine active: data will be sent to provider {provider!r} "
+                    "using your local credential."
+                ),
+                "provider": provider,
+            },
+        )
+
+    @staticmethod
+    def _llm_available_notice() -> ObservabilityEvent:
+        """Discoverability notice when running deterministic-only (Req 13.5)."""
+        return ObservabilityEvent(
+            phase="notice",
+            outcome="llm_available",
+            detail={
+                "message": (
+                    "Running deterministic engine. Add an LLM API key (.env or env var) "
+                    "to enable LLM-assisted extraction and full grounding."
+                )
+            },
+        )
 
     def run(self, refs: list[SourceRef]) -> PipelineOutput:
         result = RunResult()
         all_rows: list[Row] = []
         columns: list[str] = []
+        engine_kind = "deterministic"
 
         for ref in refs:
             try:
@@ -89,13 +133,15 @@ class Pipeline:
 
             if not columns:
                 columns = table.columns
+            if table.produced_by_engine == "llm":
+                engine_kind = "llm"
             all_rows.extend(table.rows)
             result.record(SourceOutcome(source_id=table.rows[0].source_id or ref.uri,
                                         outcome=Outcome.SUCCESS)
                           if table.rows else
                           SourceOutcome(source_id=ref.uri, outcome=Outcome.SUCCESS))
 
-        final = ProvenancedTable(columns=columns, rows=all_rows, produced_by_engine="deterministic")
+        final = ProvenancedTable(columns=columns, rows=all_rows, produced_by_engine=engine_kind)
         if self._dedup is not None:
             with self._obs.phase("dedup"):
                 final = self._dedup.dedupe(final)
@@ -122,14 +168,24 @@ class Pipeline:
             parser = self._router.route(raw)
             ir: IntermediateRepresentation = parser.parse(raw)
 
-        # Extract
+        # Extract (deterministic-first; LLM opt-in if a credential is present)
         with self._obs.phase("extract", source_id=raw.source_id):
+            if self._credential_available and not self._consent_shown:
+                # Consent notice before the first byte leaves (Req 13.6).
+                self._obs.emit(
+                    self._consent_event(self._provider or "unknown")
+                )
+                self._consent_shown = True
+            elif not self._credential_available:
+                self._obs.emit(self._llm_available_notice())
             ctx = ExtractContext(
                 schema=self._schema,
-                credential_available=False,
+                credential_available=self._credential_available,
                 retry_limit=self._config.retry_limit,
+                provider=self._provider,
+                model=self._config.llm.model if self._config.llm else None,
             )
-            table = self._engine.extract(ir, self._schema, ctx)
+            table = self._extractor.extract(ir, self._schema, ctx)
 
         # Clean (type coercion + normalization)
         with self._obs.phase("clean", source_id=raw.source_id):
@@ -139,13 +195,14 @@ class Pipeline:
             for row in table.rows:
                 self._lineage.put_all(list(row.cells.values()))
 
-        # Validate (degraded grounding)
+        # Validate (grounding: full mode if LLM active, else degraded)
         with self._obs.phase("validate", source_id=raw.source_id):
             table = self._validator.validate(
                 table,
                 ir,
                 threshold=self._config.grounding_threshold,
                 rejection_mode=self._config.rejection_mode,
+                use_full_mode=self._credential_available,
             )
         return table
 

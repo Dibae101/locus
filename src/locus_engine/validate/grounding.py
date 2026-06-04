@@ -10,11 +10,16 @@ Requirements: 7.1, 7.2, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 7.10.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from rapidfuzz import fuzz
 
 from locus_engine.ir import IntermediateRepresentation
 from locus_engine.provenance import GroundingMode
 from locus_engine.table import Cell, ProvenancedTable
+
+# An LLM judge scores how well a value is supported by source text, returning 0..1.
+LLMJudge = Callable[[str, str], float]
 
 
 class SimilarityScorer:
@@ -36,12 +41,21 @@ class SimilarityScorer:
 
 
 class GroundingValidator:
-    """Scores each cell and flags rows below the grounding threshold."""
+    """Scores each cell and flags rows below the grounding threshold.
+
+    Degraded mode (default) uses string similarity. Full mode uses an injected
+    LLM-as-judge when one is supplied and a credential is available (Req 7.3).
+    """
 
     name = "grounding"
 
-    def __init__(self, scorer: SimilarityScorer | None = None) -> None:
+    def __init__(
+        self,
+        scorer: SimilarityScorer | None = None,
+        judge: LLMJudge | None = None,
+    ) -> None:
         self._scorer = scorer or SimilarityScorer()
+        self._judge = judge
 
     def validate(
         self,
@@ -50,9 +64,14 @@ class GroundingValidator:
         *,
         threshold: float,
         rejection_mode: str = "flag",
+        use_full_mode: bool = False,
     ) -> ProvenancedTable:
         source_text = self._source_text(ir)
-        mode = GroundingMode.DEGRADED
+        mode = (
+            GroundingMode.FULL
+            if (use_full_mode and self._judge is not None)
+            else GroundingMode.DEGRADED
+        )
 
         kept_rows = []
         rejected = 0
@@ -74,8 +93,11 @@ class GroundingValidator:
 
     def _score_cell(self, cell: Cell, source_text: str, mode: GroundingMode) -> None:
         value = "" if cell.value is None else str(cell.value)
-        score = self._scorer.score(value, source_text)
-        cell.provenance.faithfulness = score  # Req 7.2
+        if mode is GroundingMode.FULL and self._judge is not None:
+            score = self._judge(value, source_text)
+        else:
+            score = self._scorer.score(value, source_text)
+        cell.provenance.faithfulness = max(0.0, min(1.0, score))  # Req 7.2
         cell.provenance.grounding_mode = mode  # Req 7.5
         cell.provenance.needs_regrounding = False
 

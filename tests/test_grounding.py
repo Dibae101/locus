@@ -51,3 +51,20 @@ def test_reject_mode_excludes_flagged_rows() -> None:
         _table("Totally Different Inc"), ir, threshold=0.7, rejection_mode="reject"
     )
     assert table.rows == []
+
+
+def test_full_mode_uses_injected_judge() -> None:
+    """Req 7.3: full mode scores via the LLM judge and records FULL mode."""
+    judge_calls = []
+
+    def judge(value: str, source_text: str) -> float:
+        judge_calls.append(value)
+        return 0.99
+
+    ir = _ir_with_text("Vendor: Acme Corp")
+    validator = GroundingValidator(judge=judge)
+    table = validator.validate(_table("Acme Corp"), ir, threshold=0.7, use_full_mode=True)
+    cell = table.rows[0].cells["vendor"]
+    assert cell.provenance.grounding_mode is GroundingMode.FULL
+    assert cell.provenance.faithfulness == 0.99
+    assert judge_calls == ["Acme Corp"]

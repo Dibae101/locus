@@ -19,6 +19,7 @@ from locus_engine.connectors.files import FileConnector
 from locus_engine.emit.dataframe import DataFrameEmitter
 from locus_engine.emit.parquet import ParquetEmitter
 from locus_engine.extract.deterministic import DeterministicEngine
+from locus_engine.extract.dual import Extractor
 from locus_engine.ir import (
     IR_SCHEMA_VERSION,
     IntermediateRepresentation,
@@ -27,6 +28,9 @@ from locus_engine.ir import (
     IRTable,
 )
 from locus_engine.lineage import InMemoryLineageStore, LineageStore
+from locus_engine.llm.credentials import CredentialResolver
+from locus_engine.llm.engine import LLMEngine
+from locus_engine.llm.router import ProviderRouter
 from locus_engine.observability import (
     ObservabilityBus,
     ObservabilityEvent,
@@ -129,12 +133,17 @@ __all__ = [
     "CsvParser",
     "ParserRouter",
     "DeterministicEngine",
+    "Extractor",
     "GroundingValidator",
     "SimilarityScorer",
     "Cleaner",
     "Deduplicator",
     "DataFrameEmitter",
     "ParquetEmitter",
+    # llm (opt-in)
+    "CredentialResolver",
+    "ProviderRouter",
+    "LLMEngine",
     # pipeline
     "Pipeline",
     "PipelineOutput",
