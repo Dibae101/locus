@@ -152,6 +152,7 @@ def catalog_seed() -> None:
 @app.command()
 def hub(
     port: int = typer.Option(8800, "--port", help="Port for the Hub web UI."),
+    host: str = typer.Option("127.0.0.1", "--host", help="Bind address (0.0.0.0 to expose)."),
     seed: bool = typer.Option(True, "--seed/--no-seed", help="Seed catalog if registry empty."),
 ) -> None:
     """Serve the Locus Hub web UI (browse + search images)."""
@@ -162,8 +163,9 @@ def hub(
         seed_catalog(store)
     from locus.hub import serve_hub
 
-    typer.echo(f"Locus Hub at http://127.0.0.1:{port} (Ctrl+C to stop).")
-    serve_hub(store, port=port)
+    shown = "127.0.0.1" if host in ("127.0.0.1", "localhost") else host
+    typer.echo(f"Locus Hub at http://{shown}:{port} (Ctrl+C to stop).")
+    serve_hub(store, host=host, port=port)
 
 
 @app.command()
