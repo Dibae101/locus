@@ -74,9 +74,36 @@ def doc_to_tables() -> ResolvedImage:
     return ResolvedImage(manifest=manifest, capability=DocToTablesCapability())
 
 
+class DropFlaggedCapability:
+    """Accepts a table artifact and emits the same table with flagged rows removed.
+
+    A minimal table->table composition stage: it reads the upstream frame and drops
+    rows whose ``_lineage._row_flagged`` is true, demonstrating multi-stage chaining
+    with a stable table contract.
+    """
+
+    def run(self, inputs: list[pd.DataFrame], ctx: StageContext) -> tuple[pd.DataFrame, str]:
+        if not inputs:
+            raise ValueError("drop-flagged requires one upstream table input")
+        frame = inputs[0]
+        if "_lineage" in frame.columns:
+            keep = frame["_lineage"].apply(
+                lambda lin: not (isinstance(lin, dict) and lin.get("_row_flagged"))
+            )
+            frame = frame[keep].reset_index(drop=True)
+        return frame, "deterministic"
+
+
+def drop_flagged() -> ResolvedImage:
+    table = ArtifactType(kind=ArtifactKind.TABLE)
+    manifest = _builtin_manifest("drop-flagged", accepts=[table], emits=table)
+    return ResolvedImage(manifest=manifest, capability=DropFlaggedCapability())
+
+
 # Registry of built-in images by name (used until OCI pull lands in Stage 6).
 BUILTIN_IMAGES = {
     "doc-to-tables": doc_to_tables,
+    "drop-flagged": drop_flagged,
 }
 
 

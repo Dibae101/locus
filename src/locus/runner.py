@@ -10,6 +10,7 @@ Requirements: 1.3, 3.1.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -19,6 +20,9 @@ from locus.errors import ImageNotFoundError
 from locus.image import ResolvedImage, StageContext
 from locus.locusfile import Locusfile, StageSpec
 from locus.workspace import RunWorkspace
+
+if TYPE_CHECKING:
+    from locus.executor import PipelineRunOutput
 
 
 @dataclass
@@ -39,10 +43,22 @@ def resolve_image(ref: str) -> ResolvedImage:
 def run_single(lf: Locusfile, *, workspace: RunWorkspace | None = None) -> RunOutput:
     stages = lf.normalized_pipeline()
     if len(stages) != 1:
-        raise ValueError("run_single expects exactly one stage; use the planner for pipelines")
+        raise ValueError("run_single expects exactly one stage; use run_pipeline for pipelines")
     stage = stages[0]
     ws = workspace or RunWorkspace()
     return _run_stage(stage, lf, ws)
+
+
+def run_pipeline(lf: Locusfile, *, workspace: RunWorkspace | None = None) -> PipelineRunOutput:
+    """Plan and execute a (possibly multi-stage) pipeline."""
+    from locus.executor import StageExecutor
+    from locus.planner import PipelinePlanner
+
+    ws = workspace or RunWorkspace()
+    planner = PipelinePlanner()
+    plan = planner.plan(lf, resolve_image, mode=lf.mode)
+    result: PipelineRunOutput = StageExecutor(lf, workspace=ws).execute(plan)
+    return result
 
 
 def _run_stage(stage: StageSpec, lf: Locusfile, ws: RunWorkspace) -> RunOutput:
