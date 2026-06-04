@@ -11,6 +11,7 @@ Requirements: 5.3, 5.4, 5.7, 5.8.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -20,6 +21,9 @@ from locus.locusfile import Locusfile
 from locus.planner import PipelinePlan
 from locus.provenance import CrossStageProvenance, RowProvenance
 from locus.workspace import RunWorkspace
+
+if TYPE_CHECKING:
+    from locus.backends import RuntimeBackend
 
 
 @dataclass
@@ -35,9 +39,18 @@ class PipelineRunOutput:
 class StageExecutor:
     """Runs a planned pipeline in dependency order."""
 
-    def __init__(self, lf: Locusfile, *, workspace: RunWorkspace | None = None) -> None:
+    def __init__(
+        self,
+        lf: Locusfile,
+        *,
+        workspace: RunWorkspace | None = None,
+        backend: RuntimeBackend | None = None,
+    ) -> None:
+        from locus.backends import ProcessBackend
+
         self._lf = lf
         self._ws = workspace or RunWorkspace()
+        self._backend = backend or ProcessBackend()
         self._outputs: dict[str, tuple[pd.DataFrame, LocusArtifact]] = {}
         self._cache: dict[str, tuple[pd.DataFrame, LocusArtifact]] = {}
         self._provenance = CrossStageProvenance()
@@ -96,7 +109,7 @@ class StageExecutor:
             config=spec.config,
             workspace_dir=str(self._ws.path),
         )
-        frame, mode = image.capability.run(inputs, ctx)
+        frame, mode = self._backend.run_stage(image, inputs, ctx)
         artifact = self._ws.write_table(stage_id, frame, image.manifest.emits, engine_mode=mode)
         self._cache[fingerprint] = (frame, artifact)
         return frame, artifact, mode

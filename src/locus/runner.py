@@ -49,15 +49,22 @@ def run_single(lf: Locusfile, *, workspace: RunWorkspace | None = None) -> RunOu
     return _run_stage(stage, lf, ws)
 
 
-def run_pipeline(lf: Locusfile, *, workspace: RunWorkspace | None = None) -> PipelineRunOutput:
+def run_pipeline(
+    lf: Locusfile,
+    *,
+    workspace: RunWorkspace | None = None,
+    runtime: str = "process",
+) -> PipelineRunOutput:
     """Plan and execute a (possibly multi-stage) pipeline."""
+    from locus.backends import select_backend
     from locus.executor import StageExecutor
     from locus.planner import PipelinePlanner
 
     ws = workspace or RunWorkspace()
     planner = PipelinePlanner()
     plan = planner.plan(lf, resolve_image, mode=lf.mode)
-    result: PipelineRunOutput = StageExecutor(lf, workspace=ws).execute(plan)
+    backend = select_backend(runtime)
+    result: PipelineRunOutput = StageExecutor(lf, workspace=ws, backend=backend).execute(plan)
     return result
 
 

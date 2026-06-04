@@ -75,7 +75,7 @@ files = ["src/locus_engine", "src/locus"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["litellm", "keyring", "instructor"]
+module = ["litellm", "keyring", "instructor", "docker"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

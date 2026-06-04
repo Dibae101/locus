@@ -134,13 +134,16 @@ def run(
     export: str = typer.Option("", "--export", help="Optional path to export the result."),
     serve: bool = typer.Option(False, "--serve", help="Serve the result UI locally."),
     port: int = typer.Option(8080, "--port", help="Port for the result UI."),
+    runtime: str = typer.Option(
+        "process", "--runtime", help="Execution backend: process | docker."
+    ),
 ) -> None:
     """Run a Locusfile (single image or multi-stage pipeline) and produce a table."""
     from locus.loader import load_locusfile
     from locus.runner import run_pipeline
 
     lf = load_locusfile(locusfile)
-    out = run_pipeline(lf)
+    out = run_pipeline(lf, runtime=runtime)
     for w in out.warnings:
         typer.echo(f"warning: {w}", err=True)
     typer.echo(f"Produced {len(out.frame)} row(s) via the {out.engine_mode} engine.")
