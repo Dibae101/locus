@@ -56,6 +56,7 @@ class ProvenancedTable(BaseModel):
     rows: list[Row] = Field(default_factory=list)
     produced_by_engine: EngineKind = "deterministic"  # Req 8.6
     grounding_mode: str = "none"
+    inferred_types: dict[str, str] = Field(default_factory=dict)
 
     def value_records(self) -> list[dict[str, Any]]:
         """All rows as plain {column: value} dicts."""

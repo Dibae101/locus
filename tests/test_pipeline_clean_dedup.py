@@ -34,3 +34,16 @@ def test_pipeline_dedupes_when_enabled() -> None:
     # 3 rows in, 2 distinct entities out (Acme x2 merged).
     assert out.table.columns == ["name", "city"]
     assert len(out.table.rows) == 2
+
+
+def test_infer_mode_auto_coerces_numeric_values() -> None:
+    """Stage 7: infer mode infers column types and the cleaner coerces them."""
+    cfg = PipelineConfig.load(
+        {"source": {"type": "files", "path": str(FIXTURES)}, "grounding_threshold": 0.0}
+    )
+    pipeline = Pipeline(cfg, _registry())
+    out = pipeline.run([SourceRef(uri=str(FIXTURES / "invoices.csv"), kind="file")])
+    # 'total' column should be coerced to float by inferred typing.
+    total = out.table.rows[0].cells["total"].value
+    assert isinstance(total, float)
+    assert total == 250.0

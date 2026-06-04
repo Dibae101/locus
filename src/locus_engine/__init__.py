@@ -64,6 +64,7 @@ from locus_engine.provenance import (
 )
 from locus_engine.registry import PluginRegistry
 from locus_engine.results import Outcome, RunResult, SourceOutcome
+from locus_engine.schema_infer import infer_cell_type, infer_column_types
 from locus_engine.table import (
     TABLE_SCHEMA_VERSION,
     Cell,
@@ -147,4 +148,7 @@ __all__ = [
     # pipeline
     "Pipeline",
     "PipelineOutput",
+    # schema inference
+    "infer_cell_type",
+    "infer_column_types",
 ]

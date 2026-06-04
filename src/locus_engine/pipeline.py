@@ -189,7 +189,11 @@ class Pipeline:
 
         # Clean (type coercion + normalization)
         with self._obs.phase("clean", source_id=raw.source_id):
-            table, clean_errors = self._cleaner.clean(table)
+            # In infer mode, use the engine's inferred column types for coercion.
+            cleaner = self._cleaner
+            if table.inferred_types:
+                cleaner = Cleaner(column_types=table.inferred_types)
+            table, clean_errors = cleaner.clean(table)
             for msg in clean_errors:
                 self._obs.error("clean", msg, source_id=raw.source_id)
             for row in table.rows:

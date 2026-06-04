@@ -22,6 +22,7 @@ from locus_engine.errors import ExtractionError
 from locus_engine.ir import IntermediateRepresentation
 from locus_engine.plugins import ExtractContext, ResolvedSchema
 from locus_engine.provenance import LineageEdge, OpKind, Provenance, SourceLocation
+from locus_engine.schema_infer import infer_column_types
 from locus_engine.table import Cell, ProvenancedTable, Row
 
 
@@ -51,6 +52,9 @@ class DeterministicEngine:
         data_rows = grid[1:]
 
         columns = self._resolve_columns(header, schema)
+        inferred = (
+            infer_column_types(columns, data_rows) if schema.mode == "infer" else {}
+        )
         rows: list[Row] = []
         for raw_row in data_rows:
             row = self._build_row(raw_row, columns, location, ir.source_id)
@@ -59,7 +63,10 @@ class DeterministicEngine:
             rows.append(row)
 
         return ProvenancedTable(
-            columns=columns, rows=rows, produced_by_engine="deterministic"
+            columns=columns,
+            rows=rows,
+            produced_by_engine="deterministic",
+            inferred_types=inferred,
         )
 
     @staticmethod
