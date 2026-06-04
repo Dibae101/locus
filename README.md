@@ -34,15 +34,17 @@ Detailed design lives in the spec documents:
 
 ## Status
 
-**Layer 1 engine: feature-complete (all 11 build stages done).** Raw corpus → validated,
-source-grounded table with cell-level provenance, a deterministic default engine, an
-opt-in guardrailed LLM engine, cleaning/dedup, human-in-the-loop review, and
-file/HTTP/REST/SQL connectors with CSV/HTML/records parsers and DataFrame/Parquet/SQL
-emitters. 125 tests, 94% coverage, CI on Python 3.11/3.12 (ruff + mypy strict + pytest).
-Built with Python 3.11+, Pydantic v2, `uv`.
+**Layer 1 engine: feature-complete.** **Layer 2 runtime: feature-complete (all 12 build stages done).** Raw corpus → validated, source-grounded table with cell-level provenance; a deterministic default engine and opt-in guardrailed LLM engine; cleaning/dedup; human-in-the-loop review; file/HTTP/REST/SQL connectors with CSV/PDF/HTML/records parsers and DataFrame/Parquet/SQL emitters. The `locus` CLI runs single images and multi-stage pipelines (typed DAG with static type-check + cross-stage provenance), builds/publishes/pulls images via a local registry, and serves a local result UI with the provenance viewer. 208 tests, CI on Python 3.11/3.12 (ruff + mypy strict + pytest).
 
-Layer 2 (`locus-image-runtime`: CLI, packaging, Locus Hub, multi-image composition) has
-requirements defined; design and implementation are next.
+```bash
+pip install locus            # CLI + engine (extras: [pdf] [llm] [serve] [dedup] ...)
+locus init                   # gitignore .env
+locus run locusfile.yaml     # run a pipeline, get a grounded table
+locus run locusfile.yaml --serve --port 8080   # preview UI with provenance
+locus build / push / pull / search / inspect   # image lifecycle
+```
+
+Remaining work is the OCI/Harbor registry backend (the local registry is the functional default today) and the official image catalog.
 
 ```python
 from locus_engine import (

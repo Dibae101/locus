@@ -38,3 +38,34 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
   a local credential is present.
 - Heavy/native dependencies (Docling, OCR, Splink, libpostal) are optional extras to
   keep the core lightweight.
+
+## Layer 2 — Runtime (locus CLI)
+
+### Added
+- **CLI** (`locus`): `init`, `validate`, `run`, `build`, `push`, `pull`, `search`,
+  `inspect`, `version` — Typer-based, single install.
+- **Data models**: versioned `ArtifactType` (compatibility rules), `LocusArtifact`
+  (path-based payload), `ImageManifest`, `Locusfile`.
+- **Locusfile loading** with validation and credential safety (raw-key rejection,
+  `.env` gitignore + git-tracked refusal).
+- **Single-image run** via the in-process backend over the Layer 1 engine.
+- **Multi-image composition**: `PipelinePlanner` (cycle detection, parallel waves,
+  static artifact-type checking, conformance gating) + `StageExecutor` (dependency
+  order, stage caching).
+- **Cross-stage provenance**: terminal cells resolve to origin source locations across
+  stages; permissive-mode lineage-breaking.
+- **Distribution**: OCI-friendly image packaging; `LocalImageStore` (pull/cache/push/
+  search/inspect, semantic version resolution, persisted public/private visibility).
+- **Build + publish**: `ImageBuilder` pins versions and certifies provenance
+  conformance; publish public/private.
+- **Result serving**: local FastAPI preview UI (rows + per-cell faithfulness + source
+  + flagged + engine mode) and export.
+- **Backends**: default in-process; optional Docker backend (errors clearly when
+  absent, no silent fallback).
+- **Privacy disclosure**: per-image privacy class, consent before external-LLM egress,
+  no blanket data-stays-local claim.
+- **Hardening**: 8 runtime correctness properties in CI; 208 tests total.
+
+### Notes
+- The default image registry is a local filesystem store (`~/.locus/registry`); a real
+  OCI/Harbor backend is interface-compatible future work.

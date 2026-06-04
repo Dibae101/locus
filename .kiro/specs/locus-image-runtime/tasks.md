@@ -10,112 +10,112 @@ Conventions: separate `locus` package (CLI) depending on `locus_engine`; Python 
 
 ### Stage 0 — Runtime package scaffold
 
-- [ ] 0.1 Create the `locus` package (CLI) depending on `locus_engine`
+- [x] 0.1 Create the `locus` package (CLI) depending on `locus_engine`
   - `pyproject.toml` for `locus`, Typer + Rich deps, optional extras (`docker`, `serve`, `oci`), dev tooling shared with the engine.
   - `LocusRuntimeError` hierarchy mirroring the engine's errors.
   - _Requirements: 1.1, 1.2_
 
 ### Stage 1 — Core runtime data models
 
-- [ ] 1.1 Implement `ArtifactType`, `ArtifactKind`, `Compat`, and `LocusArtifact`
+- [x] 1.1 Implement `ArtifactType`, `ArtifactKind`, `Compat`, and `LocusArtifact`
   - Versioned type with `tag()` and `compatible_with()` (major/minor rules).
   - Unit tests for compatibility matrix (ok / minor-diff / incompatible).
   - _Requirements: 6.1, 6.2, 6.6_
-- [ ] 1.2 Implement `ImageManifest`, `StageSpec`, `SourceSpec`, `Locusfile`, `PortSpec`
+- [x] 1.2 Implement `ImageManifest`, `StageSpec`, `SourceSpec`, `Locusfile`, `PortSpec`
   - Pydantic models with documented defaults; only source + image required.
   - _Requirements: 3.1, 9.2_
 
 ### Stage 2 — Locusfile loading and validation
 
-- [ ] 2.1 Implement `LocusfileLoader` (YAML load + model validation)
+- [x] 2.1 Implement `LocusfileLoader` (YAML load + model validation)
   - Single-image shorthand → one-stage pipeline; invalid setting → ConfigError.
   - _Requirements: 3.1, 3.6, 3.7_
-- [ ] 2.2 Implement credential safety checks
+- [x] 2.2 Implement credential safety checks
   - Reject raw key in Locusfile; resolve via engine `CredentialResolver`; `.env` gitignore on `init`; refuse git-tracked `.env`.
   - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
 ### Stage 3 — Single-image run (process backend)
 
-- [ ] 3.1 Implement `ProcessBackend` and `ResolvedImage`
+- [x] 3.1 Implement `ProcessBackend` and `ResolvedImage`
   - Run an engine-backed capability in-process; produce a `LocusArtifact` (Arrow file) in the run workspace.
   - _Requirements: 1.3_
-- [ ] 3.2 Implement `Run_Workspace` and artifact (de)serialization
+- [x] 3.2 Implement `Run_Workspace` and artifact (de)serialization
   - Write/read Arrow/Parquet payloads + lineage; content hashing for caching.
   - _Requirements: 6.2, 5.8_
-- [ ] 3.3 Wire `locus run` for a single image end-to-end
+- [x] 3.3 Wire `locus run` for a single image end-to-end
   - Locusfile → one stage → engine pipeline → artifact → (serve/export hook).
   - Golden test on a CSV using a stub image.
   - _Requirements: 1.3, 3.1_
 
 ### Stage 4 — Multi-image composition (DAG)
 
-- [ ] 4.1 Implement `PipelinePlanner`: graph build + cycle detection + waves
+- [x] 4.1 Implement `PipelinePlanner`: graph build + cycle detection + waves
   - Topological ordering; parallelizable wave grouping; cycle → ConfigError.
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
-- [ ] 4.2 Implement static interchange type-check across edges
+- [x] 4.2 Implement static interchange type-check across edges
   - Major mismatch fails; minor warns; runs before any stage executes.
   - _Requirements: 6.3, 6.4, 6.5, 6.6_
-- [ ] 4.3 Implement `StageExecutor` over the plan (process backend)
+- [x] 4.3 Implement `StageExecutor` over the plan (process backend)
   - Execute waves; root stages get the pipeline source; dependents get upstream artifacts; terminal output = final result; stage caching.
   - _Requirements: 5.4, 5.7, 5.8_
 
 ### Stage 5 — Cross-stage provenance
 
-- [ ] 5.1 Implement `CrossStageProvenance` + run `Lineage_Store`
+- [x] 5.1 Implement `CrossStageProvenance` + run `Lineage_Store`
   - Thread engine lineage across stage boundaries; terminal cells resolve to origin.
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
-- [ ] 5.2 Implement conformance gating per mode
+- [x] 5.2 Implement conformance gating per mode
   - Strict: non-conformant stage fails; permissive: continue + mark lineage-broken.
   - _Requirements: 7.7, 7.8_
 
 ### Stage 6 — Distribution (pull, cache, Hub)
 
-- [ ] 6.1 Implement `ImageStore.pull` + local cache (OCI/ORAS client)
+- [x] 6.1 Implement `ImageStore.pull` + local cache (OCI/ORAS client)
   - Pull by name/version; cache hit reuse; pull-if-missing during run; not-found error; default version resolution.
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
-- [ ] 6.2 Implement `login` + `Registry_Credential` handling
+- [x] 6.2 Implement `login` + `Registry_Credential` handling
   - Registry auth separate from LLM keys.
   - _Requirements: 10.1, 10.8_
 
 ### Stage 7 — Build and publish
 
-- [ ] 7.1 Implement `ImageBuilder` (manifest → BuiltImage, dep pinning, conformance cert)
+- [x] 7.1 Implement `ImageBuilder` (manifest → BuiltImage, dep pinning, conformance cert)
   - Reuse engine conformance harness to set `provenance_conformant`.
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
-- [ ] 7.2 Implement `push` with public/private visibility + Hub metadata
+- [x] 7.2 Implement `push` with public/private visibility + Hub metadata
   - Namespace authorization; private pull restriction; record types + conformance; self-hosted Hub path.
   - _Requirements: 10.2, 10.3, 10.4, 10.5, 10.6, 10.7_
 
 ### Stage 8 — Discovery
 
-- [ ] 8.1 Implement `search` + `inspect`
+- [x] 8.1 Implement `search` + `inspect`
   - List images; report versions, accept/emit types, engine modes, privacy class, conformance; private only for authorized.
   - _Requirements: 11.1, 11.2, 11.3_
 
 ### Stage 9 — Serving, preview, export
 
-- [ ] 9.1 Implement `ResultServer` (FastAPI) on the mapped UI port
+- [x] 9.1 Implement `ResultServer` (FastAPI) on the mapped UI port
   - Rows + per-cell faithfulness + source location + flagged rows + engine mode; local only.
   - _Requirements: 8.1, 8.2, 8.3, 8.5_
-- [ ] 9.2 Implement `Exporter` for the configured format
+- [x] 9.2 Implement `Exporter` for the configured format
   - _Requirements: 8.4_
 
 ### Stage 10 — Docker backend + privacy disclosure
 
-- [ ] 10.1 Implement `DockerBackend` (optional)
+- [x] 10.1 Implement `DockerBackend` (optional)
   - Run a stage in a container; clear error if Docker absent (no silent fallback).
   - _Requirements: 1.4, 1.5_
-- [ ] 10.2 Implement runtime privacy disclosure + consent
+- [x] 10.2 Implement runtime privacy disclosure + consent
   - Classify image privacy class; consent before external-LLM egress; no blanket local claim.
   - _Requirements: 12.1, 12.2, 12.3_
 
 ### Stage 11 — Hardening and release-readiness
 
-- [ ] 11.1 Correctness-property suite (Properties 1-8) in CI
+- [x] 11.1 Correctness-property suite (Properties 1-8) in CI
   - _Requirements: 5.6, 6.4, 7.x, 4.x, 10.8, 12.x_
-- [ ] 11.2 Golden two-stage pipeline integration test
+- [x] 11.2 Golden two-stage pipeline integration test
   - _Requirements: 5.x, 6.x, 7.x_
-- [ ] 11.3 Coverage, typing, docs; CLI usage examples
+- [x] 11.3 Coverage, typing, docs; CLI usage examples
   - _Requirements: 1.1_
 
 ## Task Dependency Graph
