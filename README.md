@@ -44,7 +44,10 @@ locus run locusfile.yaml --serve --port 8080   # preview UI with provenance
 locus build / push / pull / search / inspect   # image lifecycle
 ```
 
-Remaining work is the OCI/Harbor registry backend (the local registry is the functional default today) and the official image catalog.
+Remaining work is the official image catalog and a hub-side discovery index. The
+**OCI/Harbor registry backend is implemented** (`OrasImageStore`): set `LOCUS_REGISTRY`
+(and optionally `LOCUS_NAMESPACE`) to push/pull/inspect against Harbor, GHCR, ECR, or any
+OCI registry; otherwise a local filesystem registry is the zero-config default.
 
 ```python
 from locus_engine import (

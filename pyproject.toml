@@ -39,6 +39,9 @@ normalize = ["python-dateutil>=2.9", "babel>=2.14", "phonenumbers>=8.13"]
 sql = ["sqlalchemy>=2.0"]
 serve = ["fastapi>=0.110", "uvicorn>=0.29", "httpx>=0.27"]
 docker = ["docker>=7.0"]
+oci = [
+    "oras>=0.2.0",
+]
 
 [project.scripts]
 locus = "locus.cli:app"
@@ -75,7 +78,7 @@ files = ["src/locus_engine", "src/locus"]
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["litellm", "keyring", "instructor", "docker"]
+module = ["litellm", "keyring", "instructor", "docker", "oras", "oras.client"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

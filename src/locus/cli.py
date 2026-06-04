@@ -14,7 +14,7 @@ import typer
 from locus import __version__
 
 if TYPE_CHECKING:
-    from locus.store import LocalImageStore
+    from locus.store import ImageStore
 
 app = typer.Typer(
     name="locus",
@@ -55,13 +55,49 @@ def init(path: str = typer.Argument(".", help="Project directory to initialize."
     typer.echo(f"Initialized Locus project in {path} (.env is gitignored).")
 
 
-def _default_store() -> LocalImageStore:
+def _default_store() -> ImageStore:
+    """Resolve the image store from environment.
+
+    LOCUS_REGISTRY set -> OCI/Harbor backend (OrasImageStore); otherwise the local
+    filesystem store at ~/.locus/registry. The CLI depends only on the protocol, so
+    the backend is a config switch (Req 10.7).
+    """
+    import os
     from pathlib import Path
+
+    registry = os.environ.get("LOCUS_REGISTRY")
+    if registry:
+        from locus.oci_store import OrasImageStore
+
+        namespace = os.environ.get("LOCUS_NAMESPACE", "library")
+        insecure = os.environ.get("LOCUS_INSECURE", "").lower() in {"1", "true", "yes"}
+        return OrasImageStore(registry, namespace=namespace, insecure=insecure)
 
     from locus.store import LocalImageStore
 
     root = Path.home() / ".locus" / "registry"
     return LocalImageStore(root=root)
+
+
+@app.command()
+def login(
+    username: str = typer.Option(..., "--username", "-u", help="Registry username."),
+    password: str = typer.Option(..., "--password", "-p", help="Registry password/token."),
+) -> None:
+    """Log in to the configured OCI registry (set LOCUS_REGISTRY)."""
+    import os
+
+    if not os.environ.get("LOCUS_REGISTRY"):
+        typer.echo("Set LOCUS_REGISTRY to use a remote registry.", err=True)
+        raise typer.Exit(code=1)
+    from locus.oci_store import OrasImageStore
+
+    store = OrasImageStore(
+        os.environ["LOCUS_REGISTRY"],
+        namespace=os.environ.get("LOCUS_NAMESPACE", "library"),
+    )
+    store.login(username, password)
+    typer.echo(f"Logged in to {os.environ['LOCUS_REGISTRY']}.")
 
 
 @app.command()
