@@ -34,7 +34,25 @@ Detailed design lives in the spec documents:
 
 ## Status
 
-Early design. Requirements are defined for both layers; implementation has not started.
+Early development. Requirements, design, and a staged task plan are complete for both layers. **Layer 1 engine** — the deterministic vertical slice is implemented and tested: file → CSV parse → extract → degraded grounding → emit, with cell-level provenance resolvable end-to-end. Built with Python 3.11+, Pydantic v2, `uv`.
+
+```python
+from locus_engine import (
+    Pipeline, PipelineConfig, PluginRegistry,
+    FileConnector, CsvParser, Connector, Parser, SourceRef,
+)
+
+registry = PluginRegistry()
+registry.register(FileConnector(), Connector)
+registry.register(CsvParser(), Parser)
+
+config = PipelineConfig.load({"source": {"type": "files", "path": "./data"}})
+pipeline = Pipeline(config, registry)
+
+out = pipeline.run([SourceRef(uri="./data/invoices.csv", kind="file")])
+frame = pipeline.emit(out)          # pandas DataFrame with a _lineage column
+print(frame)
+```
 
 ## Contributing
 

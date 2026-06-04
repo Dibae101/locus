@@ -1,0 +1,4 @@
+invoice_number,vendor,total
+INV-1001,Acme Corp,250.00
+INV-1002,Globex,1300.50
+INV-1003,Initech,42.00

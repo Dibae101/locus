@@ -13,6 +13,10 @@ from locus_engine.config import (
     PipelineConfig,
     SourceConfig,
 )
+from locus_engine.connectors.files import FileConnector
+from locus_engine.emit.dataframe import DataFrameEmitter
+from locus_engine.emit.parquet import ParquetEmitter
+from locus_engine.extract.deterministic import DeterministicEngine
 from locus_engine.ir import (
     IR_SCHEMA_VERSION,
     IntermediateRepresentation,
@@ -26,6 +30,9 @@ from locus_engine.observability import (
     ObservabilityEvent,
     Severity,
 )
+from locus_engine.parsers.csv_parser import CsvParser
+from locus_engine.parsers.router import ParserRouter
+from locus_engine.pipeline import Pipeline, PipelineOutput
 from locus_engine.plugins import (
     Connector,
     EmitResult,
@@ -57,6 +64,7 @@ from locus_engine.table import (
     ProvenancedTable,
     Row,
 )
+from locus_engine.validate.grounding import GroundingValidator, SimilarityScorer
 
 __version__ = "0.0.1"
 
@@ -114,4 +122,16 @@ __all__ = [
     "RunResult",
     "SourceOutcome",
     "Outcome",
+    # built-in components
+    "FileConnector",
+    "CsvParser",
+    "ParserRouter",
+    "DeterministicEngine",
+    "GroundingValidator",
+    "SimilarityScorer",
+    "DataFrameEmitter",
+    "ParquetEmitter",
+    # pipeline
+    "Pipeline",
+    "PipelineOutput",
 ]
