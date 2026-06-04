@@ -5,11 +5,17 @@ _Snapshot for review. Everything below is verified, not assumed._
 ## Shipped and live
 
 - **Published to PyPI:** `pip install locus-etl` works (verified from a clean venv →
-  `locus run` produced a grounded table). Version `0.0.1`, CLI command `locus`.
-- **GitHub:** all work on `main` at `github.com/Dibae101/locus`; tag `v0.0.1` pushed.
-- **Tests:** 235 passing, ruff + mypy strict clean, on Python 3.11/3.12 (CI workflow committed).
+  `locus run` produced a grounded table). Latest version `0.0.2`, CLI command `locus`.
+- **GitHub:** all work on `main` at `github.com/Dibae101/locus`; tags `v0.0.1`, `v0.0.2` pushed.
+- **Tests:** 236 passing, ruff + mypy strict clean, on Python 3.11/3.12 (CI workflow committed).
 - **Every CLI command smoke-tested** end-to-end (`scripts/smoke_test.sh`): version,
   catalog list/seed, validate, run (single + multi-stage), search, inspect, pull.
+
+### 0.0.2 (latest)
+- Added missing `packaging` core dependency (fixed `ModuleNotFoundError` on `pull`/`search`).
+- Corrected optional-extra install hints to the real distribution name:
+  `pip install 'locus-etl[pdf|llm|oci|serve]'`.
+- `locus version` now derives from installed package metadata (no more stale `0.0.1`).
 
 ## What works
 
