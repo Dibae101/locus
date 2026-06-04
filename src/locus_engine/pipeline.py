@@ -26,6 +26,7 @@ from locus_engine.parsers.router import ParserRouter
 from locus_engine.plugins import ExtractContext, ResolvedSchema, SourceRef
 from locus_engine.registry import PluginRegistry
 from locus_engine.results import Outcome, RunResult, SourceOutcome
+from locus_engine.review import ReviewQueue
 from locus_engine.table import ProvenancedTable, Row
 from locus_engine.validate.grounding import GroundingValidator
 
@@ -37,6 +38,7 @@ class PipelineOutput:
     table: ProvenancedTable
     result: RunResult
     lineage: InMemoryLineageStore = field(default_factory=InMemoryLineageStore)
+    review_queue: ReviewQueue = field(default_factory=ReviewQueue)
 
 
 class Pipeline:
@@ -70,6 +72,7 @@ class Pipeline:
         self._credential_available = self._detect_credential()
         self._consent_shown = False
         self._lineage = InMemoryLineageStore()
+        self._review = ReviewQueue()
 
     def _detect_credential(self) -> bool:
         """Local presence check only — no network (Req 13.4)."""
@@ -146,6 +149,8 @@ class Pipeline:
             with self._obs.phase("dedup"):
                 final = self._dedup.dedupe(final)
         flagged = sum(1 for r in final.rows if r.flagged)
+        # Populate the review queue with flagged rows (Req 9.1).
+        self._review.add_table_flagged(final.rows)
         result.rows_emitted = len(final.rows)
         result.rows_flagged = flagged
         self._obs.corpus_summary(
@@ -155,7 +160,12 @@ class Pipeline:
             rows_rejected=result.rows_rejected,
             success=result.corpus_success,
         )
-        return PipelineOutput(table=final, result=result, lineage=self._lineage)
+        return PipelineOutput(
+            table=final,
+            result=result,
+            lineage=self._lineage,
+            review_queue=self._review,
+        )
 
     def _process_source(self, ref: SourceRef) -> ProvenancedTable:
         # Ingest

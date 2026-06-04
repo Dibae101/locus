@@ -64,6 +64,12 @@ from locus_engine.provenance import (
 )
 from locus_engine.registry import PluginRegistry
 from locus_engine.results import Outcome, RunResult, SourceOutcome
+from locus_engine.review import (
+    FeedbackRecord,
+    ReviewItem,
+    ReviewQueue,
+    corrections_as_prompt_context,
+)
 from locus_engine.schema_infer import infer_cell_type, infer_column_types
 from locus_engine.table import (
     TABLE_SCHEMA_VERSION,
@@ -151,4 +157,9 @@ __all__ = [
     # schema inference
     "infer_cell_type",
     "infer_column_types",
+    # review (human-in-the-loop)
+    "ReviewQueue",
+    "ReviewItem",
+    "FeedbackRecord",
+    "corrections_as_prompt_context",
 ]

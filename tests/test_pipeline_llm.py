@@ -58,3 +58,30 @@ def test_credential_present_shows_consent_and_uses_llm(monkeypatch, tmp_path) ->
     phases = [e.phase for e in pipeline._obs.events]  # noqa: SLF001 (test introspection)
     assert "consent" in phases
     assert out.table.produced_by_engine == "llm"
+
+
+def test_flagged_rows_populate_review_queue() -> None:
+    """Stage 8: flagged rows enter the review queue.
+
+    CSV grounding is perfect (the source IS the csv), so we exercise queue
+    population directly with a flagged row, mirroring what the pipeline does.
+    """
+    from locus_engine.provenance import Provenance, SourceLocation
+    from locus_engine.review import ReviewQueue
+    from locus_engine.table import Cell, Row
+
+    queue = ReviewQueue()
+    flagged = Row(
+        cells={
+            "vendor": Cell(
+                column="vendor",
+                value="Acme Crop",
+                provenance=Provenance(locations=[SourceLocation(source_id="d", index=0)]),
+            )
+        },
+        flagged=True,
+        source_id="d",
+    )
+    unflagged = Row(cells={"vendor": Cell(column="vendor", value="ok")}, flagged=False)
+    queue.add_table_flagged([flagged, unflagged])
+    assert len(queue.pending) == 1
