@@ -34,10 +34,17 @@ class RunOutput:
 
 
 def resolve_image(ref: str) -> ResolvedImage:
+    # 1. Curated catalog (the official images).
+    from locus.catalog import resolve_catalog
+
+    image = resolve_catalog(ref)
+    if image is not None:
+        return image
+    # 2. Legacy/test built-ins.
     image = resolve_builtin(ref)
-    if image is None:
-        raise ImageNotFoundError(ref)
-    return image
+    if image is not None:
+        return image
+    raise ImageNotFoundError(ref)
 
 
 def run_single(lf: Locusfile, *, workspace: RunWorkspace | None = None) -> RunOutput:
