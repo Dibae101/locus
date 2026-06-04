@@ -7,9 +7,14 @@ app and ``--version``; later stages add ``pull``, ``run``, ``build``, ``push``,
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import typer
 
 from locus import __version__
+
+if TYPE_CHECKING:
+    from locus.store import LocalImageStore
 
 app = typer.Typer(
     name="locus",
@@ -48,6 +53,37 @@ def init(path: str = typer.Argument(".", help="Project directory to initialize."
 
     ensure_env_gitignored(path)
     typer.echo(f"Initialized Locus project in {path} (.env is gitignored).")
+
+
+def _default_store() -> LocalImageStore:
+    from pathlib import Path
+
+    from locus.store import LocalImageStore
+
+    root = Path.home() / ".locus" / "registry"
+    return LocalImageStore(root=root)
+
+
+@app.command()
+def pull(image: str = typer.Argument(..., help="Image reference name:version.")) -> None:
+    """Pull an image into the local cache."""
+    store = _default_store()
+    path = store.pull(image)
+    typer.echo(f"Pulled {image} -> {path}")
+
+
+@app.command()
+def search(query: str = typer.Argument("", help="Filter images by name substring.")) -> None:
+    """List available images in the local registry."""
+    store = _default_store()
+    results = store.search(query)
+    if not results:
+        typer.echo("No images found.")
+        return
+    for s in results:
+        vis = "private" if s.private else "public"
+        conf = "conformant" if s.provenance_conformant else "non-conformant"
+        typer.echo(f"{s.name}:{s.version}  emits={s.emits}  [{vis}, {conf}]")
 
 
 @app.command()
