@@ -150,6 +150,23 @@ def catalog_seed() -> None:
 
 
 @app.command()
+def hub(
+    port: int = typer.Option(8800, "--port", help="Port for the Hub web UI."),
+    seed: bool = typer.Option(True, "--seed/--no-seed", help="Seed catalog if registry empty."),
+) -> None:
+    """Serve the Locus Hub web UI (browse + search images)."""
+    store = _default_store()
+    if seed and not store.search():
+        from locus.seed import seed_catalog
+
+        seed_catalog(store)
+    from locus.hub import serve_hub
+
+    typer.echo(f"Locus Hub at http://127.0.0.1:{port} (Ctrl+C to stop).")
+    serve_hub(store, port=port)
+
+
+@app.command()
 def search(query: str = typer.Argument("", help="Filter images by name substring.")) -> None:
     """List available images in the local registry."""
     store = _default_store()
