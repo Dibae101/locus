@@ -34,7 +34,15 @@ Detailed design lives in the spec documents:
 
 ## Status
 
-Early development. Requirements, design, and a staged task plan are complete for both layers. **Layer 1 engine** — the deterministic vertical slice is implemented and tested: file → CSV parse → extract → degraded grounding → emit, with cell-level provenance resolvable end-to-end. Built with Python 3.11+, Pydantic v2, `uv`.
+**Layer 1 engine: feature-complete (all 11 build stages done).** Raw corpus → validated,
+source-grounded table with cell-level provenance, a deterministic default engine, an
+opt-in guardrailed LLM engine, cleaning/dedup, human-in-the-loop review, and
+file/HTTP/REST/SQL connectors with CSV/HTML/records parsers and DataFrame/Parquet/SQL
+emitters. 125 tests, 94% coverage, CI on Python 3.11/3.12 (ruff + mypy strict + pytest).
+Built with Python 3.11+, Pydantic v2, `uv`.
+
+Layer 2 (`locus-image-runtime`: CLI, packaging, Locus Hub, multi-image composition) has
+requirements defined; design and implementation are next.
 
 ```python
 from locus_engine import (
