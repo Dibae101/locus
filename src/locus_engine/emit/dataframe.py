@@ -21,6 +21,7 @@ class DataFrameEmitter:
 
     name = "dataframe"
     fmt = "dataframe"
+    last_frame: pd.DataFrame | None = None
 
     def to_frame(self, table: ProvenancedTable) -> pd.DataFrame:
         columns = [*table.columns, LINEAGE_COLUMN]

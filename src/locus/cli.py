@@ -62,5 +62,29 @@ def validate(
     typer.echo(f"OK: {locusfile} valid ({len(stages)} stage(s)).")
 
 
+@app.command()
+def run(
+    locusfile: str = typer.Argument("locusfile.yaml", help="Path to the Locusfile."),
+    export: str = typer.Option("", "--export", help="Optional path to export the result."),
+) -> None:
+    """Run a Locusfile and produce a grounded table."""
+    from locus.loader import load_locusfile
+    from locus.runner import run_single
+
+    lf = load_locusfile(locusfile)
+    if len(lf.normalized_pipeline()) != 1:
+        typer.echo("Multi-stage pipelines are not yet supported by 'run'.", err=True)
+        raise typer.Exit(code=1)
+
+    out = run_single(lf)
+    rows = len(out.frame)
+    typer.echo(f"Produced {rows} row(s) via the {out.engine_mode} engine.")
+    if export:
+        out.frame.to_parquet(export, index=False) if export.endswith(".parquet") else (
+            out.frame.to_csv(export, index=False)
+        )
+        typer.echo(f"Exported to {export}.")
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

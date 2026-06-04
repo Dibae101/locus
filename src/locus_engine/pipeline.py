@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import pandas as pd
+
 from locus_engine.clean.cleaner import Cleaner
 from locus_engine.clean.dedup import Deduplicator
 from locus_engine.config import PipelineConfig
@@ -220,8 +222,7 @@ class Pipeline:
             )
         return table
 
-    def emit(self, output: PipelineOutput) -> object:
+    def emit(self, output: PipelineOutput) -> pd.DataFrame:
         """Convenience: emit the final table via the default DataFrame emitter."""
         emitter = DataFrameEmitter()
-        emitter.emit(output.table, dest="<dataframe>")
-        return emitter.last_frame
+        return emitter.to_frame(output.table)
