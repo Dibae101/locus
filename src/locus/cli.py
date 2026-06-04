@@ -132,6 +132,8 @@ def validate(
 def run(
     locusfile: str = typer.Argument("locusfile.yaml", help="Path to the Locusfile."),
     export: str = typer.Option("", "--export", help="Optional path to export the result."),
+    serve: bool = typer.Option(False, "--serve", help="Serve the result UI locally."),
+    port: int = typer.Option(8080, "--port", help="Port for the result UI."),
 ) -> None:
     """Run a Locusfile (single image or multi-stage pipeline) and produce a table."""
     from locus.loader import load_locusfile
@@ -157,6 +159,12 @@ def run(
         else:
             out.frame.to_csv(export, index=False)
         typer.echo(f"Exported to {export}.")
+    if serve:
+        from locus.serve import serve_result
+
+        ui_port = lf.ports.ui or port
+        typer.echo(f"Serving result at http://127.0.0.1:{ui_port} (Ctrl+C to stop).")
+        serve_result(out, port=ui_port)
 
 
 @app.command()

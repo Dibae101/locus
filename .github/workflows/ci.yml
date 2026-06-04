@@ -24,7 +24,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Sync dependencies
-        run: uv sync --extra dedup --extra pdf
+        run: uv sync --extra dedup --extra pdf --extra serve
 
       - name: Ruff (lint)
         run: uv run ruff check src tests
