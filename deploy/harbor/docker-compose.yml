@@ -1,0 +1,49 @@
+# Locus Hub — registry stack.
+#
+# Two services:
+#   - registry: a CNCF Distribution OCI registry (the storage/transport engine).
+#   - hub-ui:   the Locus Hub web UI (browse/search the catalog with trust metadata),
+#               pointed at the registry via LOCUS_REGISTRY.
+#
+# For production, swap `registry` for a full Harbor deployment (RBAC, scanning,
+# replication, its own UI) using Harbor's official installer; the Locus Hub UI and
+# CLI talk plain OCI either way. This compose file gives a working hosted hub with
+# minimal moving parts.
+#
+# Usage:
+#   docker compose -f deploy/harbor/docker-compose.yml up -d
+#   # then seed the catalog into it:
+#   LOCUS_REGISTRY=localhost:5000 LOCUS_INSECURE=1 locus catalog seed
+#   # browse at http://localhost:8800
+
+services:
+  registry:
+    image: registry:2
+    container_name: locus-registry
+    ports:
+      - "5000:5000"
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+      REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin: "[http://localhost:8800]"
+    volumes:
+      - locus-registry-data:/var/lib/registry
+    restart: unless-stopped
+
+  hub-ui:
+    image: python:3.12-slim
+    container_name: locus-hub-ui
+    depends_on:
+      - registry
+    ports:
+      - "8800:8800"
+    environment:
+      LOCUS_REGISTRY: "registry:5000"
+      LOCUS_NAMESPACE: "library"
+      LOCUS_INSECURE: "1"
+    command: >
+      bash -c "pip install --no-cache-dir 'locus-etl[serve,oci]' &&
+               locus hub --port 8800 --no-seed"
+    restart: unless-stopped
+
+volumes:
+  locus-registry-data:

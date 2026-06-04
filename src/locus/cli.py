@@ -75,8 +75,8 @@ def _default_store() -> ImageStore:
 
     from locus.store import LocalImageStore
 
-    root = Path.home() / ".locus" / "registry"
-    return LocalImageStore(root=root)
+    home = Path(os.environ.get("LOCUS_HOME", str(Path.home() / ".locus")))
+    return LocalImageStore(root=home / "registry")
 
 
 @app.command()
