@@ -104,8 +104,49 @@ def login(
 def pull(image: str = typer.Argument(..., help="Image reference name:version.")) -> None:
     """Pull an image into the local cache."""
     store = _default_store()
-    path = store.pull(image)
+    try:
+        path = store.pull(image)
+    except Exception:
+        # Fall back: if it's a known catalog image, seed it locally then pull.
+        from locus.catalog import resolve_catalog
+
+        if resolve_catalog(image) is None:
+            raise
+        _ensure_catalog_seeded(store)
+        path = store.pull(image)
     typer.echo(f"Pulled {image} -> {path}")
+
+
+def _ensure_catalog_seeded(store: ImageStore) -> None:
+    from locus.seed import seed_catalog
+
+    seed_catalog(store)
+
+
+catalog_app = typer.Typer(help="Manage the Locus image catalog.")
+app.add_typer(catalog_app, name="catalog")
+
+
+@catalog_app.command("list")
+def catalog_list() -> None:
+    """List the official catalog images."""
+    from locus.catalog import all_images
+
+    for img in all_images():
+        m = img.manifest
+        typer.echo(f"{m.name:26} {m.emits.tag():10} {m.description}")
+
+
+@catalog_app.command("seed")
+def catalog_seed() -> None:
+    """Build and publish every catalog image to the configured registry."""
+    store = _default_store()
+    from locus.seed import seed_catalog
+
+    refs = seed_catalog(store)
+    typer.echo(f"Seeded {len(refs)} catalog images:")
+    for ref in refs:
+        typer.echo(f"  {ref}")
 
 
 @app.command()
