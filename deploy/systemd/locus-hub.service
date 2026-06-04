@@ -1,0 +1,17 @@
+[Unit]
+Description=Locus Hub web UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/locus
+Environment=PATH=/home/ubuntu/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=LOCUS_HOME=/home/ubuntu/.locus
+ExecStart=/home/ubuntu/.local/bin/uv run locus hub --host 0.0.0.0 --port 8800
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
