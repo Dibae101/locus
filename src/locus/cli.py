@@ -76,6 +76,15 @@ def run(
     for w in out.warnings:
         typer.echo(f"warning: {w}", err=True)
     typer.echo(f"Produced {len(out.frame)} row(s) via the {out.engine_mode} engine.")
+    if out.provenance:
+        grounded = sum(
+            1
+            for row in out.provenance
+            for cell in row.cells.values()
+            if cell.source_ids and not cell.lineage_broken
+        )
+        total = sum(len(row.cells) for row in out.provenance)
+        typer.echo(f"Provenance: {grounded}/{total} cells trace to a source origin.")
     if export:
         if export.endswith(".parquet"):
             out.frame.to_parquet(export, index=False)

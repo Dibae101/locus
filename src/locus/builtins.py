@@ -100,10 +100,30 @@ def drop_flagged() -> ResolvedImage:
     return ResolvedImage(manifest=manifest, capability=DropFlaggedCapability())
 
 
+class StripLineageCapability:
+    """A deliberately NON-conformant table->table stage that drops the lineage
+    column. Used to exercise permissive-mode lineage-breaking and strict-mode
+    plan-time rejection."""
+
+    def run(self, inputs: list[pd.DataFrame], ctx: StageContext) -> tuple[pd.DataFrame, str]:
+        if not inputs:
+            raise ValueError("strip-lineage requires one upstream table input")
+        frame = inputs[0]
+        return frame.drop(columns=["_lineage"], errors="ignore"), "deterministic"
+
+
+def strip_lineage() -> ResolvedImage:
+    table = ArtifactType(kind=ArtifactKind.TABLE)
+    manifest = _builtin_manifest("strip-lineage", accepts=[table], emits=table)
+    manifest.provenance_conformant = False  # explicitly non-conformant
+    return ResolvedImage(manifest=manifest, capability=StripLineageCapability())
+
+
 # Registry of built-in images by name (used until OCI pull lands in Stage 6).
 BUILTIN_IMAGES = {
     "doc-to-tables": doc_to_tables,
     "drop-flagged": drop_flagged,
+    "strip-lineage": strip_lineage,
 }
 
 
