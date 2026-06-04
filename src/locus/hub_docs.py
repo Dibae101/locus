@@ -32,10 +32,19 @@ cell keeps a link back to where it came from and a faithfulness score.
 ## Install
 
 ```
-pip install locus-etl
+pip install locus-etl                  # core: CLI + engine + CSV/records
+pip install "locus-etl[standard]"      # + PDF, HTML, SQL, normalize, result UI
+pip install "locus-etl[all]"           # everything, incl. OCR/LLM/embeddings (heavy)
 ```
 
 The CLI command is `locus`. Requires Python 3.11+.
+
+The core stays lightweight on purpose. Heavier, scenario-specific capabilities
+(PDF, OCR, LLM, embeddings, dedup) are opt-in *extras* so a CSV user doesn't download a
+machine-learning toolchain. Quote the brackets so your shell doesn't treat them as a
+glob (`zsh: no matches found`). Targeted extras: `pdf`, `html`, `sql`, `normalize`,
+`serve`, `llm`, `ocr`, `dedup`, `embeddings`, `docling`, `oci`, `docker` — e.g.
+`pip install "locus-etl[pdf,serve]"`.
 
 ## Your first run
 

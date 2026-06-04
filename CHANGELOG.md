@@ -70,6 +70,16 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
 - The default image registry is a local filesystem store (`~/.locus/registry`); a real
   OCI/Harbor backend is interface-compatible future work.
 
+## 0.0.3
+
+### Added
+- **Convenience install bundles.** `pip install "locus-etl[standard]"` pulls the common
+  document/format parsers + result UI (PDF, HTML, SQL, normalize, serve) without the
+  heavy ML stacks; `pip install "locus-etl[all]"` installs every optional capability
+  (adds OCR, LLM, embeddings, dedup, docling, docker, oci). The bare `locus-etl` stays
+  lightweight — core CLI + engine + CSV/records + provenance. Install docs (README,
+  Hub Getting Started) now explain the extras model and the shell-quoting requirement.
+
 ## 0.0.2
 
 ### Fixed

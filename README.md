@@ -11,10 +11,18 @@ Locus packages data operations as reusable, versioned **images**. You pull an im
 ## Install
 
 ```bash
-pip install locus-etl          # the CLI command is `locus`
+pip install locus-etl                  # core: CLI + engine + CSV/records/provenance
+pip install "locus-etl[standard]"      # + PDF, HTML, SQL, normalize, result UI
+pip install "locus-etl[all]"           # everything, incl. OCR/LLM/embeddings (heavy)
 ```
 
-Optional extras: `pip install "locus-etl[pdf,serve,llm,oci]"` (PDF parsing, Hub/result UI, LLM engine, OCI registry).
+The CLI command is `locus` (Python 3.11+). Quote the brackets — your shell treats them
+as a glob otherwise (`zsh: no matches found`).
+
+Pick targeted extras if you prefer a lean install:
+`pip install "locus-etl[pdf,serve,llm,oci]"` — `pdf` (PDF parsing), `html`, `sql`,
+`normalize`, `serve` (Hub/result UI), `llm` (LLM engine), `ocr`, `dedup`, `embeddings`,
+`docling`, `oci` (OCI registry), `docker`.
 
 ## Quickstart
 
