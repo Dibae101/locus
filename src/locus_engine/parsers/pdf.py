@@ -43,7 +43,7 @@ class PdfParser:
         except ImportError as exc:  # pragma: no cover - exercised when extra missing
             raise ParserError(
                 raw.source_id,
-                "PDF parsing requires the 'pdf' extra: pip install locus-engine[pdf]",
+                "PDF parsing requires the 'pdf' extra: pip install 'locus-etl[pdf]'",
             ) from exc
 
         elements: list[IRElement] = []

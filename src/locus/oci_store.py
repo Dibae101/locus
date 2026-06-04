@@ -62,7 +62,7 @@ class OrasImageStore:
             import oras.client
         except ImportError as exc:  # pragma: no cover - exercised when extra missing
             raise LocusRuntimeError(
-                "OCI registry support requires the 'oci' extra: pip install locus[oci]"
+                "OCI registry support requires the 'oci' extra: pip install 'locus-etl[oci]'"
             ) from exc
         self._client = oras.client.OrasClient(hostname=self._registry, insecure=self._insecure)
         return self._client

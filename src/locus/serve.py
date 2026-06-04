@@ -82,7 +82,7 @@ def create_app(out: PipelineRunOutput) -> Any:  # returns a FastAPI app
         from fastapi.responses import HTMLResponse, JSONResponse
     except ImportError as exc:  # pragma: no cover - exercised when extra missing
         raise RuntimeError(
-            "Serving requires the 'serve' extra: pip install locus[serve]"
+            "Serving requires the 'serve' extra: pip install 'locus-etl[serve]'"
         ) from exc
 
     payload = build_result_payload(out)

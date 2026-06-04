@@ -31,7 +31,7 @@ class ProviderRouter:
             import litellm
         except ImportError as exc:  # pragma: no cover - exercised when extra missing
             raise RuntimeError(
-                "LLM features require the 'llm' extra: pip install locus-engine[llm]"
+                "LLM features require the 'llm' extra: pip install 'locus-etl[llm]'"
             ) from exc
         self._completion_fn = litellm.completion
         return self._completion_fn

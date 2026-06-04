@@ -77,3 +77,10 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
   was not declared, breaking a clean install with `ModuleNotFoundError: No module named
   'packaging'` on `pull`/`search`. Added `packaging` (and confirmed `rapidfuzz`) to core
   dependencies. Verified every module imports and all CLI commands run in a clean venv.
+- **Wrong package name in install hints** — optional-extra error messages told users to
+  run `pip install locus-engine[...]` / `pip install locus[...]`. The published
+  distribution is `locus-etl`, so those commands fail. Corrected all four hints (`pdf`,
+  `llm`, `oci`, `serve`) to `pip install 'locus-etl[...]'` with shell-safe quotes.
+- **Image build version pin** — `build_image` pinned `locus-engine`, which is not the
+  installed distribution name, so the engine version was silently dropped from image
+  manifests. Now pins `locus-etl`.

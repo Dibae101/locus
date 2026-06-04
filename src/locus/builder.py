@@ -103,7 +103,7 @@ def build_image(
     manifest = load_manifest(manifest_path)
     manifest.dependencies = {
         **manifest.dependencies,
-        **_pinned_versions(pin_packages or ["locus-engine", "pydantic", "pandas"]),
+        **_pinned_versions(pin_packages or ["locus-etl", "pydantic", "pandas"]),
     }
     if capability is not None:
         manifest.provenance_conformant = certify_conformance(capability)
