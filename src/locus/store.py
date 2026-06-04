@@ -116,9 +116,17 @@ class LocalImageStore:
         if dest.exists():
             shutil.rmtree(dest)
         shutil.copytree(image_dir, dest)
+        # Persist visibility so it survives across CLI invocations (Req 10.4).
+        (dest / ".private").write_text("1" if private else "0")
         if private:
             self._private.add(manifest.ref)
         return manifest.ref
+
+    def _is_private(self, image_dir: Path, ref: str) -> bool:
+        marker = image_dir / ".private"
+        if marker.exists():
+            return marker.read_text().strip() == "1"
+        return ref in self._private
 
     # --- search ----------------------------------------------------------
 
@@ -133,7 +141,7 @@ class LocalImageStore:
                 if not (ver_dir / "manifest.json").exists():
                     continue
                 m = read_manifest(ver_dir)
-                is_private = m.ref in self._private
+                is_private = self._is_private(ver_dir, m.ref)
                 if is_private and not include_private:
                     continue
                 out.append(

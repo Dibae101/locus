@@ -94,3 +94,15 @@ def test_search_excludes_private_when_unauthorized(tmp_path: Path) -> None:
     store = LocalImageStore(root=tmp_path / "registry")
     store.push(_build_image(tmp_path, "secret", "1.0.0"), private=True)
     assert store.search(include_private=False) == []
+
+
+def test_private_visibility_persists_across_store_instances(tmp_path: Path) -> None:
+    """Req 10.4: a private image stays private for a fresh store (new CLI run)."""
+    root = tmp_path / "registry"
+    LocalImageStore(root=root).push(_build_image(tmp_path, "secret", "1.0.0"), private=True)
+
+    # fresh instance, as a new CLI invocation would create
+    fresh = LocalImageStore(root=root)
+    summary = next(s for s in fresh.search() if s.name == "secret")
+    assert summary.private is True
+    assert fresh.search(include_private=False) == []
