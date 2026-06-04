@@ -6,6 +6,8 @@ The public API is intentionally small and grows as stages land.
 
 from __future__ import annotations
 
+from locus_engine.clean.cleaner import Cleaner
+from locus_engine.clean.dedup import Deduplicator
 from locus_engine.composer import ProvenanceComposer
 from locus_engine.config import (
     DedupConfig,
@@ -129,6 +131,8 @@ __all__ = [
     "DeterministicEngine",
     "GroundingValidator",
     "SimilarityScorer",
+    "Cleaner",
+    "Deduplicator",
     "DataFrameEmitter",
     "ParquetEmitter",
     # pipeline

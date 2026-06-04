@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from locus_engine.clean.cleaner import Cleaner
+from locus_engine.clean.dedup import Deduplicator
 from locus_engine.config import PipelineConfig
 from locus_engine.emit.dataframe import DataFrameEmitter
 from locus_engine.errors import LocusError, ParserUnavailableError, SourceError
@@ -53,6 +55,12 @@ class Pipeline:
         self._router = ParserRouter(registry, overrides=config.parser_overrides)
         self._engine = DeterministicEngine()
         self._validator = GroundingValidator()
+        self._cleaner = Cleaner()
+        self._dedup = (
+            Deduplicator(keys=config.dedup.keys, strategy=config.dedup.strategy)
+            if config.dedup.enabled and config.dedup.keys
+            else None
+        )
         self._lineage = InMemoryLineageStore()
 
     def run(self, refs: list[SourceRef]) -> PipelineOutput:
@@ -88,6 +96,9 @@ class Pipeline:
                           SourceOutcome(source_id=ref.uri, outcome=Outcome.SUCCESS))
 
         final = ProvenancedTable(columns=columns, rows=all_rows, produced_by_engine="deterministic")
+        if self._dedup is not None:
+            with self._obs.phase("dedup"):
+                final = self._dedup.dedupe(final)
         flagged = sum(1 for r in final.rows if r.flagged)
         result.rows_emitted = len(final.rows)
         result.rows_flagged = flagged
@@ -119,6 +130,12 @@ class Pipeline:
                 retry_limit=self._config.retry_limit,
             )
             table = self._engine.extract(ir, self._schema, ctx)
+
+        # Clean (type coercion + normalization)
+        with self._obs.phase("clean", source_id=raw.source_id):
+            table, clean_errors = self._cleaner.clean(table)
+            for msg in clean_errors:
+                self._obs.error("clean", msg, source_id=raw.source_id)
             for row in table.rows:
                 self._lineage.put_all(list(row.cells.values()))
 
