@@ -16,8 +16,11 @@ from locus_engine.config import (
     SourceConfig,
 )
 from locus_engine.connectors.files import FileConnector
+from locus_engine.connectors.http import HttpConnector, RestApiConnector
+from locus_engine.connectors.sql import SqlConnector
 from locus_engine.emit.dataframe import DataFrameEmitter
 from locus_engine.emit.parquet import ParquetEmitter
+from locus_engine.emit.sql import SqlEmitter
 from locus_engine.extract.deterministic import DeterministicEngine
 from locus_engine.extract.dual import Extractor
 from locus_engine.ir import (
@@ -37,6 +40,8 @@ from locus_engine.observability import (
     Severity,
 )
 from locus_engine.parsers.csv_parser import CsvParser
+from locus_engine.parsers.html import HtmlParser
+from locus_engine.parsers.records import RecordsParser
 from locus_engine.parsers.router import ParserRouter
 from locus_engine.pipeline import Pipeline, PipelineOutput
 from locus_engine.plugins import (
@@ -137,7 +142,12 @@ __all__ = [
     "Outcome",
     # built-in components
     "FileConnector",
+    "HttpConnector",
+    "RestApiConnector",
+    "SqlConnector",
     "CsvParser",
+    "HtmlParser",
+    "RecordsParser",
     "ParserRouter",
     "DeterministicEngine",
     "Extractor",
@@ -147,6 +157,7 @@ __all__ = [
     "Deduplicator",
     "DataFrameEmitter",
     "ParquetEmitter",
+    "SqlEmitter",
     # llm (opt-in)
     "CredentialResolver",
     "ProviderRouter",
