@@ -6,6 +6,8 @@ The public API is intentionally small and grows as stages land.
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
 from locus_engine.clean.cleaner import Cleaner
 from locus_engine.clean.dedup import Deduplicator
 from locus_engine.composer import ProvenanceComposer
@@ -85,7 +87,10 @@ from locus_engine.table import (
 )
 from locus_engine.validate.grounding import GroundingValidator, SimilarityScorer
 
-__version__ = "0.0.1"
+try:
+    __version__ = version("locus-etl")
+except PackageNotFoundError:  # pragma: no cover - source checkout without install
+    __version__ = "0.0.0+unknown"
 
 __all__ = [
     "__version__",
