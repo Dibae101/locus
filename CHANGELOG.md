@@ -69,3 +69,11 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
 ### Notes
 - The default image registry is a local filesystem store (`~/.locus/registry`); a real
   OCI/Harbor backend is interface-compatible future work.
+
+## 0.0.2
+
+### Fixed
+- **Missing `packaging` dependency** — `locus.store` imports `packaging.version` but it
+  was not declared, breaking a clean install with `ModuleNotFoundError: No module named
+  'packaging'` on `pull`/`search`. Added `packaging` (and confirmed `rapidfuzz`) to core
+  dependencies. Verified every module imports and all CLI commands run in a clean venv.
