@@ -87,6 +87,36 @@ def search(query: str = typer.Argument("", help="Filter images by name substring
 
 
 @app.command()
+def build(
+    manifest: str = typer.Argument("locus.image.yaml", help="Path to the image manifest."),
+    output: str = typer.Option("", "--output", "-o", help="Output image directory."),
+) -> None:
+    """Build a publishable image from a manifest."""
+    from locus.builder import build_image
+
+    out = build_image(manifest, output_dir=output or None)
+    from locus.packaging import read_manifest
+
+    m = read_manifest(out)
+    conf = "conformant" if m.provenance_conformant else "non-conformant"
+    typer.echo(f"Built {m.ref} -> {out}  [{conf}]")
+
+
+@app.command()
+def push(
+    image_dir: str = typer.Argument(..., help="Built image directory to publish."),
+    private: bool = typer.Option(False, "--private", help="Publish with private visibility."),
+) -> None:
+    """Publish a built image to the local registry."""
+    from pathlib import Path
+
+    store = _default_store()
+    ref = store.push(Path(image_dir), private=private)
+    vis = "private" if private else "public"
+    typer.echo(f"Pushed {ref} ({vis}).")
+
+
+@app.command()
 def validate(
     locusfile: str = typer.Argument("locusfile.yaml", help="Path to the Locusfile."),
 ) -> None:
