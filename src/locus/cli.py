@@ -41,5 +41,26 @@ def version() -> None:
     typer.echo(f"locus {__version__}")
 
 
+@app.command()
+def init(path: str = typer.Argument(".", help="Project directory to initialize.")) -> None:
+    """Initialize a project: ensure .env is gitignored."""
+    from locus.loader import ensure_env_gitignored
+
+    ensure_env_gitignored(path)
+    typer.echo(f"Initialized Locus project in {path} (.env is gitignored).")
+
+
+@app.command()
+def validate(
+    locusfile: str = typer.Argument("locusfile.yaml", help="Path to the Locusfile."),
+) -> None:
+    """Validate a Locusfile without running it."""
+    from locus.loader import load_locusfile
+
+    lf = load_locusfile(locusfile)
+    stages = lf.normalized_pipeline()
+    typer.echo(f"OK: {locusfile} valid ({len(stages)} stage(s)).")
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

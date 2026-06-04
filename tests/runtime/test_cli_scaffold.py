@@ -60,3 +60,17 @@ def test_type_mismatch_error_message() -> None:
 def test_image_not_found_and_backend_errors() -> None:
     assert "doc-to-tables:1.0" in str(ImageNotFoundError("doc-to-tables:1.0"))
     assert "docker" in str(BackendUnavailableError("docker"))
+
+
+def test_init_command_creates_gitignore(tmp_path) -> None:
+    result = runner.invoke(app, ["init", str(tmp_path)])
+    assert result.exit_code == 0
+    assert ".env" in (tmp_path / ".gitignore").read_text()
+
+
+def test_validate_command(tmp_path) -> None:
+    lf = tmp_path / "locusfile.yaml"
+    lf.write_text("image: doc-to-tables:1.0\nsource:\n  type: files\n  path: ./data\n")
+    result = runner.invoke(app, ["validate", str(lf)])
+    assert result.exit_code == 0
+    assert "valid" in result.stdout
