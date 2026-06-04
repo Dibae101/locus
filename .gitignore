@@ -1,0 +1,11 @@
+# Diagram-generation virtualenv (transient build tooling)
+.diagram-venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS
+.DS_Store

@@ -1,5 +1,14 @@
 # Architecture & Vision Notes
 
+> SPEC SPLIT (applied): this project is now TWO sibling specs. This architecture-notes
+> file is the shared, canonical cross-layer decision log and lives in the Layer-1 spec.
+> - `unstructured-to-tabular-etl` (Layer 1 = processing engine): requirements Req 1-15.
+> - `locus-image-runtime` (Layer 2 = packaging, CLI, Locusfile, runtime, composition,
+>   interchange contract, cross-stage provenance, Locus Hub publish, serve/export):
+>   requirements Req 1-12. The image catalog (`image-catalog.md`) now lives in this spec.
+> Decisions below apply across BOTH layers; the "engine-spec impact" / "requirements.md
+> impact" notes map to whichever spec owns that requirement.
+
 ## Project name: **Locus**
 - CLI verb: `locus pull`, `locus run`, `locus push`, `locus export`.
 - Thematic fit (factual, not decorative): in math/genetics a *locus* is a specific

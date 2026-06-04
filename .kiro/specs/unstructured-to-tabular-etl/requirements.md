@@ -4,13 +4,13 @@
 
 This feature defines an open-source, self-hosted Python framework (pip-installable, in the spirit of Instructor, Docling, and RAGAS) that owns the full data pipeline from a mixed, unstructured corpus to validated, source-grounded tabular data ready to feed a Large Language Model (LLM). The framework ingests documents (PDFs, scans, invoices, contracts), web pages, APIs, and databases; routes each source to a best-in-class parser; normalizes content into a common intermediate representation that preserves layout, tables, and source coordinates; extracts rows against a user-declared schema with auto-retry validation; cleans and deduplicates the data; and validates each output cell against its source using a Retrieval-Augmented Generation (RAG) groundedness check.
 
-The framework runs as two cooperating engines inside a single distributable image: a deterministic-Python engine (the default, requiring no LLM and keeping data local) and an optional LLM-backed engine that activates only when the user supplies an LLM API key. When the LLM engine is active, it operates as a bounded, guardrailed component in a hybrid arrangement: deterministic Python performs the structural heavy lifting (parsing, layout detection, table detection, type coercion, deduplication) and the LLM is restricted to the fuzzy task of mapping ambiguous content to schema fields. The LLM is never permitted to make unconstrained decisions, and every LLM-produced value remains subject to schema validation and the grounding contract.
+The framework runs as two cooperating engines within a single Pipeline: a deterministic-Python engine (the default, requiring no LLM and keeping data local) and an optional LLM-backed engine that activates only when the user supplies an LLM API key. When the LLM engine is active, it operates as a bounded, guardrailed component in a hybrid arrangement: deterministic Python performs the structural heavy lifting (parsing, layout detection, table detection, type coercion, deduplication) and the LLM is restricted to the fuzzy task of mapping ambiguous content to schema fields. The LLM is never permitted to make unconstrained decisions, and every LLM-produced value remains subject to schema validation and the grounding contract.
 
 The core differentiator is a cell-level source-grounding contract: every emitted cell carries provenance (its source location) and a faithfulness score, and the Pipeline can flag or reject rows that fall below a configurable grounding threshold. A human-in-the-loop review workflow lets reviewers correct flagged rows, and those corrections feed back into the schema and extraction prompts. The framework is built around a plugin architecture so that connectors, parsers, extractors, validators, and emitters can be extended by third parties.
 
-LLM provider credentials are handled at run time on the user's machine only; the framework never transmits credentials or user data to any hosted Locus service. Data privacy is therefore engine-dependent: deterministic and local-model engines keep all data on the user's machine, whereas a hosted-API LLM engine sends data to the configured third-party provider. The framework discloses this per image and obtains user consent before any data leaves the user's environment.
+LLM provider credentials are handled at run time on the user's machine only; the framework never transmits credentials or user data to any hosted service. Data privacy is therefore engine-dependent: deterministic and local-model engines keep all data on the user's machine, whereas a hosted-API LLM engine sends data to the configured third-party provider. The framework discloses this and obtains user consent before any data leaves the user's environment.
 
-This document specifies requirements for the Minimum Viable Product through the full ambitious scope, organized by pipeline phase plus cross-cutting concerns (extensibility, observability, and configuration).
+This document specifies the requirements for Layer 1, the processing engine. The packaging, distribution, command-line interface, multi-image composition, and registry (Locus Hub) concerns that build on top of this engine are specified separately in the companion `locus-image-runtime` spec.
 
 ## Glossary
 
@@ -33,15 +33,7 @@ This document specifies requirements for the Minimum Viable Product through the 
 - **Infer_Mode**: A Target Schema mode in which the Extractor infers the columns and types from the data, requiring no schema declaration from the user.
 - **Hint_Mode**: A Target Schema mode in which the user supplies loose column hints (names, types, required flags) in the Locusfile to steer extraction without enforcing full validation.
 - **Strict_Mode**: A Target Schema mode in which the user references a Pydantic model that enforces full field types, constraints, and custom validators.
-- **Locusfile**: A declarative YAML run-configuration file, written by the consumer of an image, that supplies the data source, optional schema, LLM settings, output settings, and optional multi-image Pipeline composition. It is the run-time configuration surface for the Pipeline.
-- **Stage**: A single image invocation within a composed Pipeline; it consumes an input Locus_Artifact and produces an output Locus_Artifact.
-- **Pipeline_Graph**: The directed acyclic graph of Stages declared in the Locusfile, where dependency edges (declared via stage dependencies) determine execution order and permit parallel execution of independent branches.
-- **Locus_Artifact**: The single canonical, versioned, typed envelope that is the only data structure permitted to cross a Stage boundary. It carries a declared type, a payload, and Provenance.
-- **Artifact_Type**: The declared, versioned type of a Locus_Artifact, drawn from a fixed, deliberately extended set (for example ir, table, chunks, embeddings, graph), each carrying a version.
-- **Interchange_Contract**: The requirement that every image declares the Artifact_Types it accepts and the Artifact_Type it emits, and that the Pipeline validates type compatibility across adjacent Stages before execution.
-- **Provenance_Conformance**: A certification that an image propagates and composes Provenance through its operation rather than discarding it; required for an image to be composable in strict mode.
-- **Image_Manifest**: The build-time authoring document (the image build definition) that declares an image's plugins, prompts, defaults, dependencies, accepted and emitted Artifact_Types, supported engine modes, and privacy class. Building it produces a publishable image artifact.
-- **Locus_Hub**: The registry platform, built on Harbor, that stores and serves Locus images, supporting both public and private namespaces with authentication and access control.
+- **Locusfile**: A declarative YAML run-configuration file that supplies the data source, optional schema, LLM settings, and output settings for a Pipeline run. Its full surface, including multi-image composition, is specified in the companion `locus-image-runtime` spec.
 - **Row**: A single record produced by the Extractor that conforms to the Target Schema.
 - **Cell**: A single field value within a Row, corresponding to one column of the Target Schema.
 - **Cleaner**: The component that performs type coercion, normalization, and entity resolution on extracted Rows.
@@ -252,62 +244,5 @@ This document specifies requirements for the Minimum Viable Product through the 
 3. IF the Locusfile contains a literal value that matches the pattern of a raw provider key, THEN THE Framework SHALL reject the Locusfile and raise a configuration error instructing the user to use a reference instead.
 4. WHEN a project is initialized, THE Framework SHALL ensure the environment file is listed in the project's ignore file, creating the ignore file if absent.
 5. IF the referenced environment file is tracked by version control at run time, THEN THE Framework SHALL halt the run and raise an error instructing the user to untrack it.
-6. THE Framework SHALL route LLM requests through the Provider_Router, selecting the provider and model specified in the Pipeline Configuration.
-7. THE Provider_Router SHALL operate in-process within the image and SHALL NOT require the user to install or run a separate provider-router service.
-
-### Requirement 16: Multi-Image Pipeline Composition
-
-**User Story:** As a data engineer, I want to compose multiple operation images into one pipeline that runs hierarchically over my data, so that I can produce a final result from several chained operations in a single run.
-
-#### Acceptance Criteria
-
-1. THE Locusfile SHALL allow a Pipeline composed of multiple Stages, where each Stage references one image.
-2. WHEN a composed Pipeline is run, THE Pipeline SHALL build a Pipeline_Graph from the declared Stages and their dependency edges.
-3. WHEN a Stage declares no dependency, THE Pipeline SHALL treat the Pipeline's data source as that Stage's input.
-4. WHEN a Stage declares one or more dependencies, THE Pipeline SHALL provide the output Locus_Artifacts of those dependencies as that Stage's input and SHALL execute the Stage only after all its dependencies have completed.
-5. WHERE two or more Stages have no dependency relationship between them, THE Pipeline MAY execute those Stages in parallel.
-6. IF the Pipeline_Graph contains a cycle, THEN THE Pipeline SHALL raise a configuration error identifying the cycle and SHALL NOT execute any Stage.
-7. WHEN a referenced image is not present locally at run time, THE Pipeline SHALL pull that image before executing its Stage.
-8. WHEN all Stages have completed, THE Pipeline SHALL treat the output of the terminal Stage as the final result for emission and serving.
-
-### Requirement 17: Stage Interchange Contract and Static Validation
-
-**User Story:** As a data engineer, I want the pipeline to verify that chained images are type-compatible before running, so that incompatible compositions fail fast instead of producing corrupt results.
-
-#### Acceptance Criteria
-
-1. THE data crossing any Stage boundary SHALL be a Locus_Artifact carrying a declared, versioned Artifact_Type.
-2. THE Framework SHALL define a fixed set of Artifact_Types and SHALL serialize tabular payloads in a columnar, language-agnostic format.
-3. THE Image_Manifest of each image SHALL declare the Artifact_Types the image accepts and the Artifact_Type it emits.
-4. WHEN a composed Pipeline is run, THE Pipeline SHALL validate, before executing any Stage, that for every dependency edge the producing Stage's emitted Artifact_Type is compatible with the consuming Stage's accepted Artifact_Types.
-5. IF an Artifact_Type compatibility check fails for any edge, THEN THE Pipeline SHALL raise a type-mismatch error identifying the two Stages and the incompatible types and SHALL NOT execute any Stage.
-6. WHERE a producing Stage emits a version of an Artifact_Type that differs from the consuming Stage's accepted version, THE Pipeline SHALL treat a minor-version difference as compatible with a warning and a major-version difference as incompatible.
-
-### Requirement 18: Cross-Stage Provenance Propagation
-
-**User Story:** As a compliance-conscious user, I want provenance and faithfulness to survive every stage of a pipeline, so that a final value still traces to its original source after extraction, merging, and redaction.
-
-#### Acceptance Criteria
-
-1. WHEN a Stage transforms a Cell, THE Framework SHALL compose the resulting Cell's Provenance from the Provenance of the input Cells and the operation applied, rather than discarding prior Provenance.
-2. WHEN a Stage merges multiple Cells into one, THE Framework SHALL retain references to every contributing Cell in the merged Cell's Provenance.
-3. WHEN a Stage derives multiple Cells from one Cell, THE Framework SHALL reference the originating Cell in each derived Cell's Provenance.
-4. WHEN a Stage modifies a Cell value, THE Framework SHALL compose the Faithfulness_Score according to the operation's documented composition rule and SHALL mark a value-changing result for re-grounding by a subsequent Validator Stage.
-5. WHEN the terminal Stage produces the final result, THE Framework SHALL resolve each final Cell's Provenance to its originating Source_Location through the recorded lineage.
-6. WHEN an image is submitted for publication, THE Framework SHALL certify Provenance_Conformance by verifying that the image's output retains references to a known provenanced input.
-7. WHERE a Stage in a composed Pipeline is not Provenance_Conformant and the Pipeline is in strict mode, THE Pipeline SHALL fail the run and identify the non-conformant Stage.
-8. WHERE a Stage in a composed Pipeline is not Provenance_Conformant and the Pipeline is in permissive mode, THE Pipeline SHALL continue and mark the affected downstream Cells as lineage-broken.
-
-### Requirement 19: Image Authoring and Publishing to Locus Hub
-
-**User Story:** As an image author, I want to build my own capability images and publish them publicly or privately to Locus Hub, so that I and my organization can reuse and share operations like on a container registry.
-
-#### Acceptance Criteria
-
-1. THE Framework SHALL allow an author to build a publishable image from an Image_Manifest.
-2. THE Framework SHALL allow an authenticated author to publish an image to Locus_Hub under a namespace the author is authorized to use.
-3. THE Framework SHALL support publishing an image with public visibility and with private visibility.
-4. WHEN an image is published with private visibility, THE Locus_Hub SHALL restrict pulling of that image to authorized accounts.
-5. WHEN a user pulls an image, THE Framework SHALL authenticate the user's authorization to access that image's namespace.
-6. WHEN an image is published, THE Locus_Hub SHALL record the image's declared accepted and emitted Artifact_Types and its Provenance_Conformance status.
-7. THE Framework SHALL NOT require an author to run a separate registry service of their own, and SHALL permit an organization to publish to a self-hosted Locus_Hub instance.
+6. THE Provider_Router SHALL route LLM requests to the provider and model specified in the Pipeline Configuration.
+7. THE Provider_Router SHALL operate in-process and SHALL NOT require the user to install or run a separate provider-router service.

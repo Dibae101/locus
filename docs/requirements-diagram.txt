@@ -1,0 +1,6 @@
+# Dependency for regenerating the architecture diagram.
+# Usage:
+#   python -m venv .diagram-venv
+#   .diagram-venv/bin/pip install -r docs/requirements-diagram.txt
+#   .diagram-venv/bin/python docs/generate_architecture_diagram.py
+matplotlib>=3.8
