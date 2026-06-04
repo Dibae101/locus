@@ -15,3 +15,6 @@ htmlcov/
 
 # OS
 .DS_Store
+
+# Local scratch / demo space (not committed)
+scratch/
