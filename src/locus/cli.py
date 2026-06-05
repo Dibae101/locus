@@ -227,14 +227,22 @@ def validate(
 @app.command()
 def run(
     locusfile: str = typer.Argument("locusfile.yaml", help="Path to the Locusfile."),
-    export: str = typer.Option("", "--export", help="Optional path to export the result."),
-    serve: bool = typer.Option(False, "--serve", help="Serve the result UI locally."),
-    port: int = typer.Option(8080, "--port", help="Port for the result UI."),
+    export: str = typer.Option(
+        "", "--export", help="Export path (overrides the Locusfile export.path)."
+    ),
+    export_format: str = typer.Option(
+        "", "--format", help="Export format: csv | parquet | json | markdown."
+    ),
+    serve: bool = typer.Option(
+        False, "--serve", help="Serve an interactive result visualization locally."
+    ),
+    port: int = typer.Option(0, "--port", help="Override the serve/expose port."),
     runtime: str = typer.Option(
         "process", "--runtime", help="Execution backend: process | docker."
     ),
 ) -> None:
     """Run a Locusfile (single image or multi-stage pipeline) and produce a table."""
+    from locus.export import resolve_format, write_export
     from locus.loader import load_locusfile
     from locus.runner import run_pipeline
 
@@ -252,18 +260,37 @@ def run(
         )
         total = sum(len(row.cells) for row in out.provenance)
         typer.echo(f"Provenance: {grounded}/{total} cells trace to a source origin.")
-    if export:
-        if export.endswith(".parquet"):
-            out.frame.to_parquet(export, index=False)
-        else:
-            out.frame.to_csv(export, index=False)
-        typer.echo(f"Exported to {export}.")
-    if serve:
+
+    # Export resolution: the --export flag overrides the Locusfile export.path; the
+    # --format flag overrides export.format. Either source can request a write.
+    declared_path = lf.export.path if lf.export else None
+    declared_format = lf.export.format if lf.export else None
+    include_lineage = lf.export.include_lineage if lf.export else True
+    export_path = export or declared_path
+    if export_path:
+        fmt = resolve_format(export_path, export_format or declared_format)
+        write_export(out.frame, export_path, fmt, include_lineage=include_lineage)
+        typer.echo(f"Exported to {export_path} ({fmt}).")
+
+    # Visualization: the Locusfile `expose:` field auto-serves (Dockerfile-style);
+    # `--serve` forces it on. The `--port` flag overrides the resolved port.
+    if serve or lf.expose is not None:
         from locus.serve import serve_result
 
-        ui_port = lf.ports.ui or port
-        typer.echo(f"Serving result at http://127.0.0.1:{ui_port} (Ctrl+C to stop).")
-        serve_result(out, port=ui_port)
+        host = lf.expose.host if lf.expose else "127.0.0.1"
+        resolved_port = port or (lf.expose.port if lf.expose else 0) or lf.ports.ui or 8080
+        open_browser = lf.expose.open if lf.expose else False
+        shown = "127.0.0.1" if host in ("127.0.0.1", "localhost") else host
+        if host not in ("127.0.0.1", "localhost"):
+            typer.echo(
+                f"warning: exposing the result on {host}:{resolved_port} with no "
+                "authentication; anyone who can reach this address can view the data.",
+                err=True,
+            )
+        typer.echo(
+            f"Visualizing result at http://{shown}:{resolved_port} (Ctrl+C to stop)."
+        )
+        serve_result(out, host=host, port=resolved_port, open_browser=open_browser)
 
 
 @app.command()

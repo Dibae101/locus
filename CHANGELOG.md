@@ -70,6 +70,26 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
 - The default image registry is a local filesystem store (`~/.locus/registry`); a real
   OCI/Harbor backend is interface-compatible future work.
 
+## 0.0.4
+
+### Added
+- **Declarative export.** The Locusfile `export` field is now a real feature, not just
+  a CLI flag: `export.path`, `export.format` (csv | parquet | json | markdown, inferred
+  from the path extension when omitted), and `export.include_lineage` (drop the per-cell
+  `_lineage` column for a clean, human-facing table). The `--export` flag overrides
+  `export.path` and a new `--format` flag overrides `export.format`. JSON and Markdown
+  exporters added (Markdown is dependency-free).
+- **`expose:` — web visualization, Dockerfile-style.** Add `expose: 8080` (or a full
+  `{port, host, open}` mapping) to a Locusfile and `locus run` auto-serves an
+  interactive view of the result: the table with per-cell provenance plus per-column
+  profiles and charts (numeric histograms, categorical distributions, fill rate,
+  cardinality). No spreadsheet needed. Binding to a non-loopback host prints an
+  explicit no-auth warning. `--serve` forces it on; `--port` overrides the port.
+
+### Changed
+- The result preview UI now includes a **Visualize** section (CSS bar charts, no JS
+  chart dependency) above the data/provenance table.
+
 ## 0.0.3
 
 ### Added

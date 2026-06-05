@@ -139,9 +139,10 @@ locus login -u U -p P         Log in to an OCI registry.
 ## `locus run` flags
 
 ```
---export PATH        Write the result (.csv / .parquet).
---serve              Serve a local result preview UI.
---port N             Port for --serve (default 8080).
+--export PATH        Write the result (.csv / .parquet / .json / .md).
+--format FMT         Force the export format: csv | parquet | json | markdown.
+--serve              Serve an interactive result visualization locally.
+--port N             Override the serve/expose port.
 --runtime process|docker   Execution backend (default process).
 ```
 
@@ -175,9 +176,34 @@ schema_mode:  infer (default) | hint | strict
 schema_ref:   path to a Python schema (strict mode)
 llm:          provider/model/grounding_threshold (optional)
 env_file:     path to a .env with credentials (optional)
-export:       output format settings (optional)
+export:       declarative output (optional)
+  path:           where to write the result
+  format:         csv | parquet | json | markdown (else inferred from path)
+  include_lineage: keep the per-cell _lineage column (default true)
+expose:       auto-serve a web visualization, like Dockerfile EXPOSE (optional)
+              shorthand `expose: 8080`, or:
+  port:           port to serve on (default 8080)
+  host:           bind address (default 127.0.0.1; 0.0.0.0 to share)
+  open:           auto-open the browser (default false)
 mode:         strict (default) | permissive   (provenance conformance)
 ```
+
+## Export and visualize
+
+Declare output once in the Locusfile instead of passing flags every run:
+
+```
+image: doc-to-tables
+source: { type: files, path: ./data/input.csv }
+export:
+  path: ./out.json
+  format: json
+expose: 8080        # open http://127.0.0.1:8080 to see the table + charts
+```
+
+`expose` serves an interactive view — the table with per-cell provenance plus
+column profiles and charts — so you can eyeball results without opening a
+spreadsheet. Bind to `0.0.0.0` only on trusted networks; the view has no auth.
 
 ## Pipeline (multi-image)
 

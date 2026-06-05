@@ -34,8 +34,18 @@ image: doc-to-tables
 source: { type: files, path: ./data.csv }
 EOF
 locus run locusfile.yaml --export out.csv   # grounded table + _lineage column
-locus run locusfile.yaml --serve            # preview UI with per-cell provenance
+locus run locusfile.yaml --serve            # interactive result view (table + charts)
 locus hub                                    # browse the catalog in a local web UI
+```
+
+Declare output and a live visualization right in the Locusfile (Dockerfile-style):
+
+```yaml
+image: doc-to-tables
+source: { type: files, path: ./data.csv }
+export:
+  path: ./out.json        # csv | parquet | json | markdown (inferred from extension)
+expose: 8080              # serve table + column charts at http://127.0.0.1:8080
 ```
 
 ## Architecture (layered)
