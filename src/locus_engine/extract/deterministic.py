@@ -39,17 +39,7 @@ class DeterministicEngine:
     ) -> ProvenancedTable:
         tables = ir.tables()
         if not tables:
-            has_text = any(e.text.strip() for e in ir.elements)
-            if has_text:
-                raise ExtractionError(
-                    ir.source_id,
-                    "no table found in source: the document has text but no tabular "
-                    "structure (rows/columns). The deterministic engine extracts "
-                    "documents that already contain tables (e.g. invoices, bank "
-                    "statements, CSV/HTML tables); it does not convert free-form prose "
-                    "into a table.",
-                )
-            raise ExtractionError(ir.source_id, "no table found in source")
+            return self._extract_elements_fallback(ir, schema)
 
         table_el = tables[0]
         assert table_el.table is not None
@@ -77,6 +67,45 @@ class DeterministicEngine:
             rows=rows,
             produced_by_engine="deterministic",
             inferred_types=inferred,
+        )
+
+    def _extract_elements_fallback(
+        self, ir: IntermediateRepresentation, schema: ResolvedSchema
+    ) -> ProvenancedTable:
+        """When a document has no table grid, present its located elements as a table
+        (kind | text | location). This makes *any* readable document produce a
+        structured, fully-grounded result instead of an error — each row's cells trace
+        to the element's own ``SourceLocation``. It does not fabricate domain
+        structure; it surfaces what the parser actually found.
+        """
+        text_elements = [e for e in ir.elements if e.text and e.text.strip()]
+        if not text_elements:
+            raise ExtractionError(ir.source_id, "no table found in source")
+
+        columns = ["element", "text", "location"]
+        rows: list[Row] = []
+        for el in text_elements:
+            loc = el.location
+            note = loc.note or (f"index {loc.index}" if loc.index is not None else "source")
+            values = {"element": el.kind.value, "text": el.text.strip(), "location": note}
+            cells = {
+                col: Cell(
+                    column=col,
+                    value=values[col],
+                    provenance=Provenance(
+                        locations=[loc.model_copy(deep=True)],
+                        lineage=[LineageEdge(op=OpKind.EXTRACT)],
+                    ),
+                )
+                for col in columns
+            }
+            rows.append(Row(cells=cells, source_id=ir.source_id))
+
+        return ProvenancedTable(
+            columns=columns,
+            rows=rows,
+            produced_by_engine="deterministic",
+            inferred_types={},
         )
 
     @staticmethod

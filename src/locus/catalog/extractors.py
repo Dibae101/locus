@@ -14,9 +14,21 @@ from locus.image import ResolvedImage, StageContext
 from locus.manifest import ImageManifest
 from locus_engine.config import PipelineConfig
 from locus_engine.connectors.files import FileConnector
+from locus_engine.parsers.archive import ArchiveParser
 from locus_engine.parsers.csv_parser import CsvParser
 from locus_engine.parsers.html import HtmlParser
+from locus_engine.parsers.image import ImageParser
+from locus_engine.parsers.json_parser import JsonParser
+from locus_engine.parsers.markdown import MarkdownParser
+from locus_engine.parsers.office import (
+    DocxParser,
+    EpubParser,
+    OdtParser,
+    PptxParser,
+    XlsxParser,
+)
 from locus_engine.parsers.records import RecordsParser
+from locus_engine.parsers.text import TextParser
 from locus_engine.pipeline import Pipeline
 from locus_engine.plugins import Connector, Parser, SourceRef
 from locus_engine.registry import PluginRegistry
@@ -27,7 +39,17 @@ def _engine_registry() -> PluginRegistry:
     reg.register(FileConnector(), Connector)
     reg.register(CsvParser(), Parser)
     reg.register(HtmlParser(), Parser)
+    reg.register(JsonParser(), Parser)
     reg.register(RecordsParser(), Parser)
+    reg.register(MarkdownParser(), Parser)
+    reg.register(TextParser(), Parser)
+    reg.register(DocxParser(), Parser)
+    reg.register(PptxParser(), Parser)
+    reg.register(XlsxParser(), Parser)
+    reg.register(OdtParser(), Parser)
+    reg.register(EpubParser(), Parser)
+    reg.register(ArchiveParser(), Parser)
+    reg.register(ImageParser(), Parser)
     try:
         from locus_engine.parsers.pdf import PdfParser
 

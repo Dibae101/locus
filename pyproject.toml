@@ -1,6 +1,6 @@
 [project]
 name = "locus-etl"
-version = "0.0.4"
+version = "0.0.5"
 description = "Locus — turn any unstructured corpus into validated, source-grounded tabular data. CLI: `locus`."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -23,6 +23,40 @@ _EXTRA_TYPES = {
     ".htm": "text/html",
     ".json": "application/json",
     ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".markdown": "text/markdown",
+    ".docx": (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ),
+    ".pptx": (
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    ),
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".odt": "application/vnd.oasis.opendocument.text",
+    ".epub": "application/epub+zip",
+    # Text-like / source files — read as plain text so they at least surface.
+    ".css": "text/plain",
+    ".js": "text/plain",
+    ".ts": "text/plain",
+    ".py": "text/plain",
+    ".java": "text/plain",
+    ".c": "text/plain",
+    ".cpp": "text/plain",
+    ".go": "text/plain",
+    ".rs": "text/plain",
+    ".rb": "text/plain",
+    ".sh": "text/plain",
+    ".yaml": "text/plain",
+    ".yml": "text/plain",
+    ".toml": "text/plain",
+    ".ini": "text/plain",
+    ".log": "text/plain",
+    ".rst": "text/plain",
+    ".tex": "text/plain",
+    ".xml": "text/plain",
+    ".svg": "text/plain",
+    ".drawio": "text/plain",
+    ".zip": "application/zip",
 }
 
 

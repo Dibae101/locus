@@ -48,6 +48,15 @@ export:
 expose: 8080              # serve table + column charts at http://127.0.0.1:8080
 ```
 
+## Supported inputs
+
+Out of the box (no extra dependencies): CSV/TSV, JSON, Markdown (pipe tables), HTML,
+plain text and common source files, DOCX, PPTX, XLSX, ODT, EPUB, and ZIP archives
+(members parsed and merged). PDF text is available with the `pdf` extra; images need
+OCR (roadmap). Documents with tables yield those tables; documents that are prose yield
+a grounded `element | text | location` table so any readable file still produces a
+presentable result.
+
 ## Architecture (layered)
 
 ![Locus layered architecture](docs/architecture.png)

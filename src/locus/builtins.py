@@ -15,31 +15,16 @@ from locus.artifacts import ArtifactKind, ArtifactType
 from locus.image import ResolvedImage, StageContext, _builtin_manifest
 from locus.manifest import ImageManifest
 from locus_engine.config import PipelineConfig
-from locus_engine.connectors.files import FileConnector
-from locus_engine.parsers.csv_parser import CsvParser
-from locus_engine.parsers.router import ParserRouter  # noqa: F401 (used indirectly)
 from locus_engine.pipeline import Pipeline
-from locus_engine.plugins import Connector, Parser
 from locus_engine.registry import PluginRegistry
 
 
 def _engine_registry() -> PluginRegistry:
-    reg = PluginRegistry()
-    reg.register(FileConnector(), Connector)
-    reg.register(CsvParser(), Parser)
-    # Optional parsers are registered when their extras are installed.
-    try:
-        from locus_engine.parsers.pdf import PdfParser
+    # Reuse the catalog extractor's full multi-format registry so the legacy built-in
+    # and the catalog image parse the same set of formats.
+    from locus.catalog.extractors import _engine_registry as catalog_registry
 
-        reg.register(PdfParser(), Parser)
-    except Exception:  # pragma: no cover - optional dep
-        pass
-    from locus_engine.parsers.html import HtmlParser
-    from locus_engine.parsers.records import RecordsParser
-
-    reg.register(HtmlParser(), Parser)
-    reg.register(RecordsParser(), Parser)
-    return reg
+    return catalog_registry()
 
 
 class DocToTablesCapability:

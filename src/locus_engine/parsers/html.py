@@ -83,7 +83,7 @@ class HtmlParser:
     """Parses HTML into located text blocks and tables (stdlib-based)."""
 
     name = "html"
-    content_types = ("text/html",)
+    content_types: tuple[str, ...] = ("text/html",)
 
     def supports(self, content_type: str) -> bool:
         return content_type in self.content_types

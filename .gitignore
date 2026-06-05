@@ -24,6 +24,10 @@ htmlcov/
 # Local scratch / demo space (not committed)
 scratch/
 
+# User test datasets (not part of the package)
+daatsets/
+datasets/
+
 # Build artifacts
 dist/
 build/

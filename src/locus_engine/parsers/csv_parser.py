@@ -28,7 +28,7 @@ class CsvParser:
     """Parses CSV and TSV content into an IR table."""
 
     name = "csv"
-    content_types = ("text/csv", "text/tab-separated-values")
+    content_types: tuple[str, ...] = ("text/csv", "text/tab-separated-values")
 
     def supports(self, content_type: str) -> bool:
         return content_type in self.content_types

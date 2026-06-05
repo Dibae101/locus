@@ -70,6 +70,31 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
 - The default image registry is a local filesystem store (`~/.locus/registry`); a real
   OCI/Harbor backend is interface-compatible future work.
 
+## 0.0.5
+
+### Added
+- **Broad file-format support.** New dependency-free parsers (Python stdlib only) so a
+  much wider range of files extract into tables:
+  - **Markdown** (`.md`) — GitHub-style pipe tables become real tables; text otherwise.
+  - **JSON** (`.json`) — arrays of objects → rows; nested objects → flattened
+    key/value table (dotted/indexed paths). Also handles API/DB records.
+  - **DOCX / PPTX / XLSX / ODT / EPUB** — these are ZIP+XML; tables and text are
+    extracted directly via `zipfile` + `xml.etree`, no third-party libraries.
+  - **Plain text** and common source/text files (`.txt`, `.css`, `.js`, `.py`, `.yaml`,
+    `.xml`, `.svg`, `.drawio`, …) read as text.
+  - **ZIP archives** (`.zip`) — contained files are parsed and merged, with provenance
+    pointing at each member path.
+  - **Images** (`.png`, `.jpg`, …) — clear, actionable "OCR required" error instead of
+    a cryptic "no parser" failure.
+- **Universal document-elements fallback.** When a document has text but no table grid
+  (e.g. a resume PDF, a prose `.docx`), the deterministic engine now emits a structured
+  `element | text | location` table — every cell grounded to its source location —
+  instead of erroring. Any readable file produces a presentable, grounded table.
+
+### Changed
+- The legacy built-in `doc-to-tables` and the catalog image now share one multi-format
+  parser registry, so both parse the same formats.
+
 ## 0.0.4
 
 ### Added
