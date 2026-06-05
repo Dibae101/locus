@@ -70,6 +70,19 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
 - The default image registry is a local filesystem store (`~/.locus/registry`); a real
   OCI/Harbor backend is interface-compatible future work.
 
+## 0.0.6
+
+### Fixed
+- **PDF text reconstruction.** The PDF parser dumped each whole page as a single
+  "paragraph" using `extract_text()`, which (a) dropped inter-word spaces on PDFs that
+  encode no space characters (`CloudPlatformandDevOps…`) and (b) read straight across
+  multi-column layouts, interleaving columns into nonsense. Text is now rebuilt from
+  positioned words: a font-size-derived word tolerance restores spacing, words are
+  grouped into lines and lines into paragraphs on vertical gaps, and a strict
+  empty-gutter test splits genuine two-column pages while leaving single-column
+  documents (resumes, reports) in natural reading order. Each paragraph carries a
+  bounding box enclosing its words.
+
 ## 0.0.5
 
 ### Added
