@@ -39,6 +39,16 @@ class DeterministicEngine:
     ) -> ProvenancedTable:
         tables = ir.tables()
         if not tables:
+            has_text = any(e.text.strip() for e in ir.elements)
+            if has_text:
+                raise ExtractionError(
+                    ir.source_id,
+                    "no table found in source: the document has text but no tabular "
+                    "structure (rows/columns). The deterministic engine extracts "
+                    "documents that already contain tables (e.g. invoices, bank "
+                    "statements, CSV/HTML tables); it does not convert free-form prose "
+                    "into a table.",
+                )
             raise ExtractionError(ir.source_id, "no table found in source")
 
         table_el = tables[0]
