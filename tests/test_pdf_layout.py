@@ -61,23 +61,71 @@ def test_single_column_resume_not_split() -> None:
     for i in range(20):
         words += _line_of(["bullet", "text", "spanning", "the", "page", "width"],
                           top=40.0 + i * 12, x_start=50.0)
-    columns = parser._split_columns(words, page_width=612.0)
-    assert len(columns) == 1
+    flows = parser._reading_flows(words, page_width=612.0)
+    assert len(flows) == 1
 
 
 def test_two_column_paper_is_split() -> None:
     parser = PdfParser()
-    # Clear left and right blocks with an empty central gutter => two columns.
-    # Left column ~50-200, right column ~340-490, gutter ~290-322 (band) empty.
+    # Clear left and right blocks with an empty central gutter => two flows.
+    # Left column ~50-200, right column ~340-490, gutter ~290-322 empty.
     words: list[dict] = []
     for i in range(30):
         words += _line_of(["left", "col", "word"], top=40.0 + i * 12, x_start=50.0)
         words += _line_of(["right", "col", "word"], top=40.0 + i * 12, x_start=340.0)
-    columns = parser._split_columns(words, page_width=612.0)
-    assert len(columns) == 2
-    left, right = columns
+    flows = parser._reading_flows(words, page_width=612.0)
+    assert len(flows) == 2
+    left, right = flows
     assert all(w["x1"] <= 306.0 for w in left)
     assert all(w["x0"] >= 306.0 for w in right)
+
+
+def test_full_width_header_above_two_columns_reads_in_order() -> None:
+    """The CARBON case: a full-width title/abstract above a two-column body must read
+    header -> entire left column -> entire right column, never interleaving columns."""
+    parser = PdfParser()
+    words: list[dict] = []
+    # Full-width title: words placed across the whole width so one straddles the
+    # gutter near mid-page (x≈306), as a real centered/justified title does.
+    for x in range(60, 540, 40):
+        words += _line_of(["TITLEWORD"], top=20.0, x_start=float(x))
+    # Two-column body below, clean gutter around x=306.
+    for i in range(25):
+        words += _line_of(["LEFT", str(i)], top=60.0 + i * 12, x_start=50.0)
+        words += _line_of(["RIGHT", str(i)], top=60.0 + i * 12, x_start=340.0)
+
+    flows = parser._reading_flows(words, page_width=612.0)
+    # header flow + left flow + right flow
+    assert len(flows) == 3
+    header_text = " ".join(w["text"] for w in flows[0])
+    left_text = " ".join(w["text"] for w in flows[1])
+    right_text = " ".join(w["text"] for w in flows[2])
+    assert "TITLEWORD" in header_text
+    # Left flow contains only LEFT tokens; right flow only RIGHT tokens (no mixing).
+    assert "LEFT" in left_text and "RIGHT" not in left_text
+    assert "RIGHT" in right_text and "LEFT" not in right_text
+
+
+def test_two_column_paragraph_text_not_interleaved() -> None:
+    """End-to-end on the grouping: a left sentence and a right sentence on the same
+    visual rows must not be zippered into one line."""
+    parser = PdfParser()
+    words: list[dict] = []
+    left_sentence = ["The", "quick", "brown", "fox", "jumps", "over"]
+    right_sentence = ["A", "second", "column", "of", "unrelated", "text"]
+    # Repeat the rows so the page clears the minimum-word threshold for column logic.
+    for rep in range(6):
+        for i in range(6):
+            top = 40.0 + (rep * 6 + i) * 12
+            words += _line_of([left_sentence[i]], top=top, x_start=50.0)
+            words += _line_of([right_sentence[i]], top=top, x_start=340.0)
+    flows = parser._reading_flows(words, page_width=612.0)
+    texts = [
+        " ".join(t for t, _ in parser._column_paragraphs(flow)) for flow in flows
+    ]
+    joined = " || ".join(texts)
+    assert "The quick brown fox jumps over" in joined
+    assert "A second column of unrelated text" in joined
 
 
 def test_word_tolerance_scales_with_font_height() -> None:

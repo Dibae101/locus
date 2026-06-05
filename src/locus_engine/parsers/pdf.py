@@ -143,11 +143,11 @@ class PdfParser:
             return [(stripped, [])] if stripped else []
 
         page_width = float(getattr(page, "width", 0.0) or 0.0)
-        columns = self._split_columns(words, page_width)
+        flows = self._reading_flows(words, page_width)
 
         paragraphs: list[tuple[str, list[dict[str, Any]]]] = []
-        for column in columns:
-            paragraphs.extend(self._column_paragraphs(column))
+        for flow in flows:
+            paragraphs.extend(self._column_paragraphs(flow))
         return paragraphs
 
     @staticmethod
@@ -169,35 +169,105 @@ class PdfParser:
         common = max(set(heights), key=heights.count)
         return float(max(1.0, min(3.0, common * 0.18)))
 
-    @staticmethod
-    def _split_columns(
-        words: list[dict[str, Any]], page_width: float
+    def _reading_flows(
+        self, words: list[dict[str, Any]], page_width: float
     ) -> list[list[dict[str, Any]]]:
-        """Split words into columns only when there is a genuinely empty central
-        gutter, as in two-column academic papers. Single-column documents (including
-        resumes with full-width headers and indented blocks) are left intact.
+        """Return word groups in human reading order, handling mixed layouts.
 
-        A real two-column layout has almost no glyphs crossing a central band and two
-        well-balanced sides. Resumes fail the gutter test because headings and bullet
-        indentation place words across the middle, so they stay single-column and read
-        top-to-bottom in natural order.
+        Academic papers commonly place a full-width title/abstract header above a
+        two-column body. Reading straight across zippers the two body columns together
+        and cuts sentences in half. This method finds a vertical *gutter* — an x
+        position no word crosses — near the page middle, then classifies each line as
+        spanning the gutter (full-width title) or living in the left/right column, and
+        segments the page so a two-column region emits its whole left column before its
+        right column. Single-column pages (no persistent gutter) read top-to-bottom.
         """
         if page_width <= 0 or len(words) < 60:
             return [words]
+
+        gutter = self._find_gutter(words, page_width)
+        if gutter is None:
+            return [words]
+
+        lines = self._group_lines(words)
+        # Classify each line relative to the gutter.
+        classified: list[tuple[str, list[dict[str, Any]], list[dict[str, Any]]]] = []
+        for ln in lines:
+            crosses = any(w["x0"] < gutter < w["x1"] for w in ln["words"])
+            lwords = [w for w in ln["words"] if w["x1"] <= gutter]
+            rwords = [w for w in ln["words"] if w["x0"] >= gutter]
+            if crosses or not (lwords and rwords):
+                # A word straddles the gutter (full-width line) or the line sits in a
+                # single column only.
+                kind = "span" if crosses else ("left" if lwords else "right")
+            else:
+                kind = "split"
+            classified.append((kind, lwords, rwords))
+
+        return self._segment_flows(classified)
+
+    @staticmethod
+    def _find_gutter(words: list[dict[str, Any]], page_width: float) -> float | None:
+        """Find a vertical whitespace channel near mid-page that no word crosses.
+
+        Scans candidate x positions in the central third of the page and returns the
+        one crossed by the fewest words (must be near-zero), provided both sides carry
+        substantial text. Returns None for single-column layouts.
+        """
         mid = page_width / 2.0
-        # Central band = +/- 5% of page width around the midline (the gutter).
-        band = page_width * 0.05
-        crossing = [w for w in words if w["x0"] < mid + band and w["x1"] > mid - band]
-        left = [w for w in words if w["x1"] <= mid]
-        right = [w for w in words if w["x0"] >= mid]
-        # Require an essentially empty gutter and balanced, substantial columns.
-        if (
-            len(crossing) <= 0.03 * len(words)
-            and len(left) >= 0.30 * len(words)
-            and len(right) >= 0.30 * len(words)
-        ):
-            return [left, right]
-        return [words]
+        lo, hi = int(page_width * 0.35), int(page_width * 0.65)
+        best_x: float | None = None
+        best_cross = None
+        for x in range(lo, hi + 1, 4):
+            crossing = sum(1 for w in words if w["x0"] < x < w["x1"])
+            left = sum(1 for w in words if w["x1"] <= x)
+            right = sum(1 for w in words if w["x0"] >= x)
+            # Need an essentially empty channel and balanced, substantial sides.
+            if (
+                crossing <= 0.01 * len(words)
+                and left >= 0.25 * len(words)
+                and right >= 0.25 * len(words)
+            ):
+                # Prefer the emptiest channel closest to the true middle.
+                score = (crossing, abs(x - mid))
+                if best_cross is None or score < best_cross:
+                    best_cross = score
+                    best_x = float(x)
+        return best_x
+
+    @staticmethod
+    def _segment_flows(
+        classified: list[tuple[str, list[dict[str, Any]], list[dict[str, Any]]]],
+    ) -> list[list[dict[str, Any]]]:
+        """Walk classified lines top-to-bottom, emitting full-width spans in place and
+        grouping consecutive two-column runs so each whole left column precedes its
+        right column."""
+        flows: list[list[dict[str, Any]]] = []
+        i = 0
+        n = len(classified)
+        while i < n:
+            kind = classified[i][0]
+            if kind == "span":
+                block: list[dict[str, Any]] = []
+                while i < n and classified[i][0] == "span":
+                    _, lw, rw = classified[i]
+                    block.extend(lw + rw)
+                    i += 1
+                if block:
+                    flows.append(block)
+            else:
+                left: list[dict[str, Any]] = []
+                right: list[dict[str, Any]] = []
+                while i < n and classified[i][0] in ("split", "left", "right"):
+                    _, lw, rw = classified[i]
+                    left.extend(lw)
+                    right.extend(rw)
+                    i += 1
+                if left:
+                    flows.append(left)
+                if right:
+                    flows.append(right)
+        return flows
 
     def _column_paragraphs(
         self, words: list[dict[str, Any]]

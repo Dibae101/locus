@@ -123,11 +123,29 @@ def render_html(payload: dict[str, Any]) -> str:
         engine=payload["engine_mode"],
         rows=payload["row_count"],
         flagged=payload["flagged_count"],
+        notices=_render_notices(payload),
         head=head,
         body="".join(body_rows),
         charts=_render_charts(payload.get("profiles", [])),
         payload_json=json.dumps(payload, default=str),
     )
+
+
+def _render_notices(payload: dict[str, Any]) -> str:
+    """Render a banner explaining warnings/errors (e.g. why a run produced no rows)."""
+    warnings = payload.get("warnings") or []
+    if not warnings and payload["row_count"] > 0:
+        return ""
+    items = "".join(f"<li>{_esc(w)}</li>" for w in warnings)
+    if payload["row_count"] == 0:
+        head = (
+            "No rows were produced. This usually means the source could not be parsed "
+            "into a table."
+        )
+    else:
+        head = "Notices:"
+    body = f"<ul>{items}</ul>" if items else ""
+    return f'<div class="notice">{_esc(head)}{body}</div>'
 
 
 def _render_charts(profiles: list[dict[str, Any]]) -> str:
@@ -266,11 +284,15 @@ _HTML_TEMPLATE = """<!doctype html>
  .bar-fill {{ display: block; height: 12px; border-radius: 3px; background: #3ebd93; }}
  .bar-count {{ width: 44px; text-align: right; color: #627d98; }}
  .empty {{ color: #9aa5b1; font-size: 0.8rem; }}
+ .notice {{ background: #fffbea; border: 1px solid #f7d070; color: #8d6708;
+            border-radius: 8px; padding: 12px 14px; margin-bottom: 1.25rem; }}
+ .notice ul {{ margin: 6px 0 0; padding-left: 1.1rem; }}
 </style></head>
 <body>
  <h1>Locus Result</h1>
  <div class="meta">engine: <b>{engine}</b> &middot; rows: {rows} &middot; flagged: {flagged}
    &middot; hover a cell for source &amp; grounding</div>
+ {notices}
  <h2>Visualize</h2>
  {charts}
  <h2>Data &amp; provenance</h2>

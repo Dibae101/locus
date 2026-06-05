@@ -70,6 +70,21 @@ Initial implementation of the Layer 1 processing engine, built stage by stage.
 - The default image registry is a local filesystem store (`~/.locus/registry`); a real
   OCI/Harbor backend is interface-compatible future work.
 
+## 0.0.7
+
+### Fixed
+- **Two-column PDF reading order.** Multi-column papers with a full-width
+  title/abstract header (e.g. conference papers) were read straight across, zippering
+  the left and right columns together and cutting sentences in half. The parser now
+  detects a vertical whitespace *gutter* no word crosses, classifies each line as
+  spanning (full-width) or column-bound, and emits the entire left column before the
+  right — header first, then each column in natural reading order. Single-column
+  documents are unaffected.
+- **Empty results now explain themselves.** When a source can't be parsed into a table
+  (e.g. an image that needs OCR), the extraction error is surfaced to the CLI (as a
+  `warning:` line) and to the result UI (a "No rows were produced" notice naming the
+  reason), instead of a silent blank page that looked identical for every failing file.
+
 ## 0.0.6
 
 ### Fixed

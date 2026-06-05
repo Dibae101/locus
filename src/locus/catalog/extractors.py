@@ -74,7 +74,16 @@ class _EngineCapability:
         )
         pipeline = Pipeline(cfg, _engine_registry())
         out = pipeline.run([SourceRef(uri=source.path, kind="file")])
-        return pipeline.emit(out), out.table.produced_by_engine
+        frame = pipeline.emit(out)
+        # Surface per-source extraction errors (e.g. an image needing OCR) so the CLI
+        # and result UI can explain why a run produced no rows, instead of a silent
+        # empty table. Carried on the frame's attrs (preserved by pandas).
+        errors = [
+            f"{o.source_id}: {o.reason}" for o in out.result.errored if o.reason
+        ]
+        if errors:
+            frame.attrs["locus_errors"] = errors
+        return frame, out.table.produced_by_engine
 
 
 def _extractor(name: str, description: str) -> ResolvedImage:

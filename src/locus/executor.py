@@ -58,9 +58,13 @@ class StageExecutor:
     def execute(self, plan: PipelinePlan) -> PipelineRunOutput:
         last_mode = "deterministic"
         permissive = self._lf.mode == "permissive"
+        stage_errors: list[str] = []
         for wave in plan.waves:
             for stage_id in wave:
                 frame, artifact, mode = self._run_stage(plan, stage_id)
+                # Collect any extraction errors a stage surfaced (e.g. an image needing
+                # OCR), so the result can explain an empty output (Req 11.x).
+                stage_errors.extend(frame.attrs.get("locus_errors", []))
                 # Permissive mode: a non-conformant stage's output is lineage-broken
                 # (strict mode already failed at plan time) (Req 7.8).
                 if permissive and not plan.stages[stage_id].image.manifest.provenance_conformant:
@@ -80,7 +84,7 @@ class StageExecutor:
             artifact=artifact,
             engine_mode=last_mode,
             workspace=self._ws,
-            warnings=plan.warnings,
+            warnings=plan.warnings + stage_errors,
             provenance=resolved,
         )
 
