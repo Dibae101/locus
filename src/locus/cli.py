@@ -290,7 +290,11 @@ def run(
         typer.echo(
             f"Visualizing result at http://{shown}:{resolved_port} (Ctrl+C to stop)."
         )
-        serve_result(out, host=host, port=resolved_port, open_browser=open_browser)
+        try:
+            serve_result(out, host=host, port=resolved_port, open_browser=open_browser)
+        except RuntimeError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(code=1) from exc
 
 
 @app.command()

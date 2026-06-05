@@ -218,7 +218,15 @@ def serve_result(
     open_browser: bool = False,
 ) -> None:
     """Serve the result on a local port (Req 8.1). Blocks until interrupted."""
-    import uvicorn
+    try:
+        import uvicorn
+    except ImportError as exc:  # pragma: no cover - exercised when extra missing
+        raise RuntimeError(
+            "Visualization requires the 'serve' extra: pip install 'locus-etl[serve]' "
+            "(or 'locus-etl[standard]')"
+        ) from exc
+
+    app = create_app(out)  # validates FastAPI presence with the same guidance
 
     if open_browser:
         import threading
@@ -227,7 +235,7 @@ def serve_result(
         url = f"http://{'127.0.0.1' if host == '0.0.0.0' else host}:{port}"  # noqa: S104
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
 
-    uvicorn.run(create_app(out), host=host, port=port, log_level="warning")
+    uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
 _HTML_TEMPLATE = """<!doctype html>
