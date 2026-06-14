@@ -282,7 +282,7 @@ def create_hub_app(store: ImageStore) -> Any:
         from fastapi.responses import HTMLResponse, JSONResponse
     except ImportError as exc:  # pragma: no cover - exercised when extra missing
         raise RuntimeError(
-            "The Hub UI requires the 'serve' extra: pip install locus-etl[serve]"
+            "The Hub UI requires the 'serve' extra: pip install 'locus-etl[serve]'"
         ) from exc
 
     app = FastAPI(title="Locus Hub", docs_url=None, redoc_url=None, openapi_url=None)
